@@ -18,6 +18,7 @@ library(rmarkdown)
 library(glmnet)
 library(knitr)
 library(dplyr)
+library(zoo)
 ```
 
 ## Original Buoy Data
@@ -40,9 +41,22 @@ originalBuoy2019 = originalBuoy2019 %>%
   mutate(GustSpeed = as.numeric(as.character(GustSpeed))) %>%
   mutate(AirTemp = as.numeric(as.character(AirTemp))) %>%
   mutate(SeaSurfaceTemp = as.numeric(as.character(SeaSurfaceTemp))) %>%
-  mutate(DewpointTemp = as.numeric(as.character(DewpointTemp)))
+  mutate(DewpointTemp = as.numeric(as.character(DewpointTemp))) %>%
+  mutate(WaveHeight = as.numeric(as.character(WaveHeight))) %>%
+  mutate(DominantWavePeriod = as.numeric(as.character(DominantWavePeriod))) %>%
+  mutate(AverageWavePeriod = as.numeric(as.character(AverageWavePeriod))) %>%
+  mutate(DirWavePeriod = as.numeric(as.character(DirWavePeriod))) %>%
+  mutate(SeaLevelPressure = as.numeric(as.character(SeaLevelPressure))) %>%
+  filter(WaveHeight != 99.00)
 
 originalBuoy2019
+```
+
+```{r}
+# create rolling averages for every 4 hours?
+
+
+
 ```
 
 
@@ -52,7 +66,7 @@ ParkCity2019 = read.csv("./snowfallData/ParkCitySnowfall2019.csv")
 ParkCity2020 = read.csv("./snowfallData/ParkCitySnowfall2020.csv")
 ```
 
-```{r}
+```{r warning = FALSE}
 # change M, T and - to 0
 ParkCity2019 = ParkCity2019 %>%
   mutate_if(is.factor, as.character) %>%
@@ -63,11 +77,19 @@ ParkCity2020 = ParkCity2020 %>%
   mutate_if(is.factor, as.character) %>%
   mutate_if(is.character, as.numeric)
 ParkCity2020[is.na(ParkCity2020)] <- 0
+
+ParkCity2019
+ParkCity2020
 ```
 
 ```{r}
+Jan2019 = originalBuoy2019 %>%
+  filter(Month == "01")
+ggplot(data = Jan2019, aes(x = Day, y = WaveHeight)) +
+  geom_point()
 
-
+ggplot(data = ParkCity2019, aes(x = Day, y = Feb)) +
+  geom_point()
 ```
 
 
