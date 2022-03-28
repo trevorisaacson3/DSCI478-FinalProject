@@ -1,0 +1,30 @@
+---
+title: "InitialResearch"
+author: "Trevor Isaacson"
+date: "3/27/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE, echo = FALSE}
+set.seed(445)
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(fig.width=5, fig.height=3) 
+knitr::opts_chunk$set(message = FALSE)
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library(e1071)
+library(rmarkdown)
+library(glmnet)
+library(knitr)
+library(dplyr)
+```
+
+
+```{r}
+originalBuoy2019 = read.delim("./buoyData/originalBuoy2019.txt", header = TRUE)
+originalBuoy2019
+
+
+```
+
