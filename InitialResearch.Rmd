@@ -20,7 +20,7 @@ library(knitr)
 library(dplyr)
 ```
 
-
+## Original Buoy Data
 ```{r}
 originalBuoy2019 = read.delim("./buoyData/originalBuoy2019.txt", header = FALSE, sep = "")
 colnames(originalBuoy2019) = c("Year", "Month", "Day", "Hour", "Minute", "WindDir", "WindSpeed", "GustSpeed", "WaveHeight", "DominantWavePeriod", "AverageWavePeriod", "DirWavePeriod", "SeaLevelPressure", "AirTemp", "SeaSurfaceTemp", "DewpointTemp", "Visibility", "Tide")
@@ -44,5 +44,40 @@ originalBuoy2019 = originalBuoy2019 %>%
 
 originalBuoy2019
 ```
+
+
+## Park City Snowfall Data
+```{r}
+ParkCity2019 = read.csv("./snowfallData/ParkCitySnowfall2019.csv")
+ParkCity2020 = read.csv("./snowfallData/ParkCitySnowfall2020.csv")
+```
+
+```{r}
+# change M, T and - to 0
+ParkCity2019 = ParkCity2019 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+ParkCity2019[is.na(ParkCity2019)] <- 0
+
+ParkCity2020 = ParkCity2020 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+ParkCity2020[is.na(ParkCity2020)] <- 0
+```
+
+```{r}
+
+
+```
+
+
+
+
+
+
+
+
+
+
 
 
