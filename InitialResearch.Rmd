@@ -22,9 +22,27 @@ library(dplyr)
 
 
 ```{r}
-originalBuoy2019 = read.delim("./buoyData/originalBuoy2019.txt", header = TRUE)
+originalBuoy2019 = read.delim("./buoyData/originalBuoy2019.txt", header = FALSE, sep = "")
+colnames(originalBuoy2019) = c("Year", "Month", "Day", "Hour", "Minute", "WindDir", "WindSpeed", "GustSpeed", "WaveHeight", "DominantWavePeriod", "AverageWavePeriod", "DirWavePeriod", "SeaLevelPressure", "AirTemp", "SeaSurfaceTemp", "DewpointTemp", "Visibility", "Tide")
+originalBuoy2019 = originalBuoy2019[-c(1),]
 originalBuoy2019
-
-
 ```
+
+```{r}
+# the measurements we want are measured at minute 40
+originalBuoy2019 = originalBuoy2019 %>%
+  # these aren't measured and remain static
+  select(-c("Tide", "Visibility")) %>%
+  filter(Minute == 40)
+
+originalBuoy2019 = originalBuoy2019 %>%
+  mutate(WindSpeed = as.numeric(as.character(WindSpeed))) %>%
+  mutate(GustSpeed = as.numeric(as.character(GustSpeed))) %>%
+  mutate(AirTemp = as.numeric(as.character(AirTemp))) %>%
+  mutate(SeaSurfaceTemp = as.numeric(as.character(SeaSurfaceTemp))) %>%
+  mutate(DewpointTemp = as.numeric(as.character(DewpointTemp)))
+
+originalBuoy2019
+```
+
 
