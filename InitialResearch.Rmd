@@ -30,7 +30,10 @@ library(zoo)
 originalBuoy2019 = read.delim("./buoyData/originalBuoy2019.txt", header = FALSE, sep = "")
 colnames(originalBuoy2019) = c("Year", "Month", "Day", "Hour", "Minute", "WindDir", "WindSpeed", "GustSpeed", "WaveHeight", "DominantWavePeriod", "AverageWavePeriod", "DirWavePeriod", "SeaLevelPressure", "AirTemp", "SeaSurfaceTemp", "DewpointTemp", "Visibility", "Tide")
 originalBuoy2019 = originalBuoy2019[-c(1),]
-originalBuoy2019
+
+originalBuoy2020 = read.delim("./buoyData/originalBuoy2020.txt", header = FALSE, sep = "")
+colnames(originalBuoy2020) = c("Year", "Month", "Day", "Hour", "Minute", "WindDir", "WindSpeed", "GustSpeed", "WaveHeight", "DominantWavePeriod", "AverageWavePeriod", "DirWavePeriod", "SeaLevelPressure", "AirTemp", "SeaSurfaceTemp", "DewpointTemp", "Visibility", "Tide")
+originalBuoy2020 = originalBuoy2020[-c(1),]
 ```
 
 ```{r}
@@ -60,13 +63,12 @@ originalBuoy2019
 
 ```{r}
 # create mean for every 4 hours, 12 hours and day
-DailyData = originalBuoy2019 %>%
+DailyData2019 = originalBuoy2019 %>%
   group_by(Year, Month, Day) %>%
   summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
   
-DailyData
+DailyData2019
 ```
-
 
 ## Park City Snowfall Data
 ```{r}
@@ -91,24 +93,37 @@ ParkCity2020
 
 ```
 
-```{r}
-snowTotals = stack(ParkCity2019[2:ncol(ParkCity2019)])
-snowTotals = snowTotals[-c(60,61,62,124,168,186,248,341), ]
+The Dataframe ParkCity2019 shows snowfall totals for the corresponding day.  
+Snowfall column shows the snowfall on that day.  
+Snowfall14DaysLater shows the snowfall two weeks after that day.  This will be used to determine if waveHeight increases in Hawaii lead to snow 14 days later in Utah
+```{r warning = FALSE}
+snowTotals2019 = stack(ParkCity2019[2:ncol(ParkCity2019)])
+snowTotals2019 = snowTotals2019[-c(60,61,62,124,168,186,248,341), ]
+
+# advanced snowfall = park city snow two weeks in advance
+advanceSnowTotals14Days = snowTotals2019[-c(1:14), ]
+SnowTotals14Daysinto2020 = ParkCity2020[1:14, "Jan"]
+SnowTotals14Daysinto2020 = data.frame(values = SnowTotals14Daysinto2020, 
+                                      ind = "Jan")
+advancedSnowfall = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2020)
+
 newParkCity2019 = data.frame(Year = DailyData$Year,
                              Month = DailyData$Month,
                              Day = DailyData$Day,
-                             Snowfall = snowTotals$values)
+                             Snowfall = snowTotals2019$values,
+                             Snowfall14DaysLater = advancedSnowfall$values)
 ParkCity2019 = newParkCity2019
+ParkCity2019
 ```
 
 
 
 ```{r}
-ggplot(data = DailyData, aes(x = Day, y = WaveHeight)) +
+ggplot(data = DailyData2019, aes(x = Day, y = WaveHeight)) +
   geom_line() +
   facet_wrap(~Month)
 
-ggplot(data = ParkCity2019, aes(x = Day, y = Snowfall)) +
+ggplot(data = ParkCity2019, aes(x = Day, y = Snowfall14DaysLater)) +
   geom_line() +
   facet_wrap(~Month)
 ```
