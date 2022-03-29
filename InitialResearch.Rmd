@@ -52,6 +52,7 @@ originalBuoy2019 = originalBuoy2019 %>%
   mutate(DirWavePeriod = as.numeric(as.character(DirWavePeriod))) %>%
   mutate(SeaLevelPressure = as.numeric(as.character(SeaLevelPressure))) %>%
   mutate(WindDir = as.numeric(as.character(WindDir))) %>%
+  mutate(Day = as.numeric(as.character(Day))) %>%
   filter(WaveHeight != 99.00)
 
 originalBuoy2019
@@ -90,13 +91,9 @@ ParkCity2020
 ```
 
 ```{r}
-Jan2019 = DailyData %>%
-  filter(Month == "01")
-
-Jan2019
-ggplot(data = Jan2019, aes(x = Day, y = WaveHeight)) +
-  geom_point() +
-  geom_line() 
+ggplot(data = DailyData, aes(x = Day, y = WaveHeight)) +
+  geom_line() +
+  facet_wrap(~Month)
 
 ggplot(data = ParkCity2019, aes(x = Day, y = Feb)) +
   geom_point() +
