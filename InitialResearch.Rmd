@@ -88,16 +88,29 @@ ParkCity2020[is.na(ParkCity2020)] <- 0
 
 ParkCity2019
 ParkCity2020
+
 ```
+
+```{r}
+snowTotals = stack(ParkCity2019[2:ncol(ParkCity2019)])
+snowTotals = snowTotals[-c(60,61,62,124,168,186,248,341), ]
+newParkCity2019 = data.frame(Year = DailyData$Year,
+                             Month = DailyData$Month,
+                             Day = DailyData$Day,
+                             Snowfall = snowTotals$values)
+ParkCity2019 = newParkCity2019
+```
+
+
 
 ```{r}
 ggplot(data = DailyData, aes(x = Day, y = WaveHeight)) +
   geom_line() +
   facet_wrap(~Month)
 
-ggplot(data = ParkCity2019, aes(x = Day, y = Feb)) +
-  geom_point() +
-  geom_line()
+ggplot(data = ParkCity2019, aes(x = Day, y = Snowfall)) +
+  geom_line() +
+  facet_wrap(~Month)
 ```
 
 
