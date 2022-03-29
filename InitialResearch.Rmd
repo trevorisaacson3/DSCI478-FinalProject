@@ -5,6 +5,10 @@ date: "3/27/2022"
 output: html_document
 ---
 
+
+Machine Learning and Cosine Similarity? Ask about slides
+Difference in measurement start of day and end of day, compare that number with snowfall two weeks out
+Average measurement compared with snowfall two weeks out 
 ```{r setup, include=FALSE, echo = FALSE}
 set.seed(445)
 knitr::opts_chunk$set(echo = FALSE)
@@ -47,16 +51,19 @@ originalBuoy2019 = originalBuoy2019 %>%
   mutate(AverageWavePeriod = as.numeric(as.character(AverageWavePeriod))) %>%
   mutate(DirWavePeriod = as.numeric(as.character(DirWavePeriod))) %>%
   mutate(SeaLevelPressure = as.numeric(as.character(SeaLevelPressure))) %>%
+  mutate(WindDir = as.numeric(as.character(WindDir))) %>%
   filter(WaveHeight != 99.00)
 
 originalBuoy2019
 ```
 
 ```{r}
-# create rolling averages for every 4 hours?
-
-
-
+# create mean for every 4 hours, 12 hours and day
+DailyData = originalBuoy2019 %>%
+  group_by(Year, Month, Day) %>%
+  summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
+  
+DailyData
 ```
 
 
@@ -83,13 +90,17 @@ ParkCity2020
 ```
 
 ```{r}
-Jan2019 = originalBuoy2019 %>%
+Jan2019 = DailyData %>%
   filter(Month == "01")
+
+Jan2019
 ggplot(data = Jan2019, aes(x = Day, y = WaveHeight)) +
-  geom_point()
+  geom_point() +
+  geom_line() 
 
 ggplot(data = ParkCity2019, aes(x = Day, y = Feb)) +
-  geom_point()
+  geom_point() +
+  geom_line()
 ```
 
 
