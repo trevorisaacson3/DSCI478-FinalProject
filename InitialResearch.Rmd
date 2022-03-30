@@ -121,8 +121,14 @@ ParkCity2020 = ParkCity2020 %>%
   mutate_if(is.character, as.numeric)
 ParkCity2020[is.na(ParkCity2020)] <- 0
 
+ParkCity2021 = ParkCity2021 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+ParkCity2021[is.na(ParkCity2021)] <- 0
+
 ParkCity2019
 ParkCity2020
+ParkCity2021
 
 ```
 
@@ -144,9 +150,9 @@ SnowTotals14Daysinto2020 = data.frame(values = SnowTotals14Daysinto2020,
 advancedSnowfall = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2020)
 
 # create dataframe of snowfalls 
-newParkCity2019 = data.frame(Year = DailyData$Year,
-                             Month = DailyData$Month,
-                             Day = DailyData$Day,
+newParkCity2019 = data.frame(Year = DailyData2019$Year,
+                             Month = DailyData2019$Month,
+                             Day = DailyData2019$Day,
                              Snowfall = snowTotals2019$values,
                              Snowfall14DaysLater = advancedSnowfall$values)
 ParkCity2019 = newParkCity2019
@@ -160,51 +166,53 @@ DailyData2019
 ```{r}
 # make snowtotals into one column
 snowTotals2020 = stack(ParkCity2020[2:ncol(ParkCity2020)])
-snowTotals2020
-snowTotals2020 = snowTotals2019[-c(60,61,124,168,186,248,341), ]
+snowTotals2020 = snowTotals2020[-c(60,61,124,186,194,248,341), ]
 
 # advanced snowfall = park city snow two weeks in advance
 # remove first 14 days of year
 advanceSnowTotals14Days = snowTotals2020[-c(1:14), ]
 # add first 14 days of next year to end
-# SnowTotals14Daysinto2020 = ParkCity2020[1:14, "Jan"]
-# SnowTotals14Daysinto2020 = data.frame(values = SnowTotals14Daysinto2020, ind = "Jan")
-# advancedSnowfall = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2020)
+SnowTotals14Daysinto2021 = ParkCity2021[1:14, "Jan"]
+SnowTotals14Daysinto2021 = data.frame(values = SnowTotals14Daysinto2021, ind = "Jan")
+
+advancedSnowfall = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2021)
 
 # create dataframe of snowfalls 
-# newParkCity2019 = data.frame(Year = DailyData$Year,
-#                              Month = DailyData$Month,
-#                              Day = DailyData$Day,
-#                              Snowfall = snowTotals2019$values,
-#                              Snowfall14DaysLater = advancedSnowfall$values)
-# ParkCity2019 = newParkCity2019
+newParkCity2020 = data.frame(Year = DailyData2020$Year,
+                             Month = DailyData2020$Month,
+                             Day = DailyData2020$Day,
+                             Snowfall = snowTotals2020$values,
+                             Snowfall14DaysLater = advancedSnowfall$values)
+ParkCity2020 = newParkCity2020
 
-# DailyData2019["Snowfall"] = ParkCity2019$Snowfall
-# DailyData2019["Snowfall14DaysLater"] = ParkCity2019$Snowfall14DaysLater
+DailyData2020["Snowfall"] = ParkCity2020$Snowfall
+DailyData2020["Snowfall14DaysLater"] = ParkCity2020$Snowfall14DaysLater
 
-# DailyData2019
-
-
-
+DailyData2020
 
 ```
 
 ```{r}
-ggplot(data = DailyData2019, aes(x = Day, y = WaveHeight)) +
+ggplot(data = DailyData2020, aes(x = Day, y = WaveHeight)) +
   geom_line() +
   facet_wrap(~Month)
 
-ggplot(data = ParkCity2019, aes(x = Day, y = Snowfall14DaysLater)) +
+ggplot(data = ParkCity2020, aes(x = Day, y = Snowfall14DaysLater)) +
   geom_line() +
   facet_wrap(~Month)
 ```
 
 
 ```{r}
-predictedSnow = lm(Snowfall14DaysLater ~ SeaLevelPressure , data = DailyData2019)
+totalDaily = rbind(DailyData2019, DailyData2020)
+totalDaily <- totalDaily %>%
+  select(-c("Year", "Month", "Day"))
+
+totalDaily
+predictedSnow = lm(Snowfall14DaysLater ~ . , data = totalDaily)
 summary(predictedSnow)
 
-
+colnames(totalDaily)
 ```
 
 
