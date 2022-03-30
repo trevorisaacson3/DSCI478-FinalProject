@@ -56,9 +56,36 @@ originalBuoy2019 = originalBuoy2019 %>%
   mutate(SeaLevelPressure = as.numeric(as.character(SeaLevelPressure))) %>%
   mutate(WindDir = as.numeric(as.character(WindDir))) %>%
   mutate(Day = as.numeric(as.character(Day))) %>%
+  mutate(Month = as.numeric(as.character(Month))) %>%
+  mutate(Year = as.numeric(as.character(Year))) %>%
   filter(WaveHeight != 99.00)
 
 originalBuoy2019
+
+
+originalBuoy2020 = originalBuoy2020 %>%
+  # these aren't measured and remain static
+  select(-c("Tide", "Visibility")) %>%
+  filter(Minute == 40)
+
+originalBuoy2020 = originalBuoy2020 %>%
+  mutate(WindSpeed = as.numeric(as.character(WindSpeed))) %>%
+  mutate(GustSpeed = as.numeric(as.character(GustSpeed))) %>%
+  mutate(AirTemp = as.numeric(as.character(AirTemp))) %>%
+  mutate(SeaSurfaceTemp = as.numeric(as.character(SeaSurfaceTemp))) %>%
+  mutate(DewpointTemp = as.numeric(as.character(DewpointTemp))) %>%
+  mutate(WaveHeight = as.numeric(as.character(WaveHeight))) %>%
+  mutate(DominantWavePeriod = as.numeric(as.character(DominantWavePeriod))) %>%
+  mutate(AverageWavePeriod = as.numeric(as.character(AverageWavePeriod))) %>%
+  mutate(DirWavePeriod = as.numeric(as.character(DirWavePeriod))) %>%
+  mutate(SeaLevelPressure = as.numeric(as.character(SeaLevelPressure))) %>%
+  mutate(WindDir = as.numeric(as.character(WindDir))) %>%
+  mutate(Day = as.numeric(as.character(Day))) %>%
+  mutate(Month = as.numeric(as.character(Month))) %>%
+  mutate(Year = as.numeric(as.character(Year))) %>%
+  filter(WaveHeight != 99.00)
+
+originalBuoy2020
 ```
 
 ```{r}
@@ -67,13 +94,19 @@ DailyData2019 = originalBuoy2019 %>%
   group_by(Year, Month, Day) %>%
   summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
   
+DailyData2020 = originalBuoy2020 %>%
+  group_by(Year, Month, Day) %>%
+  summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
+
 DailyData2019
+DailyData2020
 ```
 
 ## Park City Snowfall Data
 ```{r}
 ParkCity2019 = read.csv("./snowfallData/ParkCitySnowfall2019.csv")
 ParkCity2020 = read.csv("./snowfallData/ParkCitySnowfall2020.csv")
+ParkCity2021 = read.csv("./snowfallData/ParkCitySnowfall2021.csv")
 ```
 
 ```{r warning = FALSE}
@@ -125,6 +158,38 @@ DailyData2019
 ```
 
 ```{r}
+# make snowtotals into one column
+snowTotals2020 = stack(ParkCity2020[2:ncol(ParkCity2020)])
+snowTotals2020
+snowTotals2020 = snowTotals2019[-c(60,61,124,168,186,248,341), ]
+
+# advanced snowfall = park city snow two weeks in advance
+# remove first 14 days of year
+advanceSnowTotals14Days = snowTotals2020[-c(1:14), ]
+# add first 14 days of next year to end
+# SnowTotals14Daysinto2020 = ParkCity2020[1:14, "Jan"]
+# SnowTotals14Daysinto2020 = data.frame(values = SnowTotals14Daysinto2020, ind = "Jan")
+# advancedSnowfall = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2020)
+
+# create dataframe of snowfalls 
+# newParkCity2019 = data.frame(Year = DailyData$Year,
+#                              Month = DailyData$Month,
+#                              Day = DailyData$Day,
+#                              Snowfall = snowTotals2019$values,
+#                              Snowfall14DaysLater = advancedSnowfall$values)
+# ParkCity2019 = newParkCity2019
+
+# DailyData2019["Snowfall"] = ParkCity2019$Snowfall
+# DailyData2019["Snowfall14DaysLater"] = ParkCity2019$Snowfall14DaysLater
+
+# DailyData2019
+
+
+
+
+```
+
+```{r}
 ggplot(data = DailyData2019, aes(x = Day, y = WaveHeight)) +
   geom_line() +
   facet_wrap(~Month)
@@ -136,7 +201,7 @@ ggplot(data = ParkCity2019, aes(x = Day, y = Snowfall14DaysLater)) +
 
 
 ```{r}
-predictedSnow = lm(Snowfall14DaysLater ~ WaveHeight, data = DailyData2019)
+predictedSnow = lm(Snowfall14DaysLater ~ SeaLevelPressure , data = DailyData2019)
 summary(predictedSnow)
 
 
