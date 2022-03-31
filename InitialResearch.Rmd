@@ -9,6 +9,11 @@ output: html_document
 Machine Learning and Cosine Similarity? Ask about slides
 Difference in measurement start of day and end of day, compare that number with snowfall two weeks out
 Average measurement compared with snowfall two weeks out 
+How quickly the buoy pops is going to matter
+Check difference from last 12 hours and/or Height > 7?
+  Use biggest difference from day to compare with daily snow totals
+  Does a negative number correlate to storm ending? 
+  
 ```{r setup, include=FALSE, echo = FALSE}
 set.seed(445)
 knitr::opts_chunk$set(echo = FALSE)
@@ -23,6 +28,8 @@ library(glmnet)
 library(knitr)
 library(dplyr)
 library(zoo)
+library(tree)
+library(randomForest)
 ```
 
 ## Original Buoy Data
@@ -60,9 +67,6 @@ originalBuoy2019 = originalBuoy2019 %>%
   mutate(Year = as.numeric(as.character(Year))) %>%
   filter(WaveHeight != 99.00)
 
-originalBuoy2019
-
-
 originalBuoy2020 = originalBuoy2020 %>%
   # these aren't measured and remain static
   select(-c("Tide", "Visibility")) %>%
@@ -85,21 +89,24 @@ originalBuoy2020 = originalBuoy2020 %>%
   mutate(Year = as.numeric(as.character(Year))) %>%
   filter(WaveHeight != 99.00)
 
-originalBuoy2020
+originalBuoy2019
+# originalBuoy2020
 ```
 
+
+AverageDailyDataXXXX is the daily averages for the total data
 ```{r}
-# create mean for every 4 hours, 12 hours and day
-DailyData2019 = originalBuoy2019 %>%
+# create mean for entire day
+AverageDailyData2019 = originalBuoy2019 %>%
   group_by(Year, Month, Day) %>%
   summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
   
-DailyData2020 = originalBuoy2020 %>%
+AverageDailyData2020 = originalBuoy2020 %>%
   group_by(Year, Month, Day) %>%
   summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
 
-DailyData2019
-DailyData2020
+# AverageDailyData2019
+# AverageDailyData2020
 ```
 
 ## Park City Snowfall Data
@@ -126,9 +133,20 @@ ParkCity2021 = ParkCity2021 %>%
   mutate_if(is.character, as.numeric)
 ParkCity2021[is.na(ParkCity2021)] <- 0
 
-ParkCity2019
-ParkCity2020
-ParkCity2021
+ParkCity2019 %>%
+  ggplot(aes(x = Day, y = Snowfall)) +
+    geom_line() +
+    facet_wrap(~Month)
+ParkCity2020 %>%
+  ggplot(aes(x = Day, y = Snowfall)) +
+    geom_line() +
+    facet_wrap(~Month)
+ParkCity2021 %>%
+  ggplot(aes(x = Day, y = Snowfall)) +
+    geom_line() +
+    facet_wrap(~Month)
+
+
 
 ```
 
@@ -150,17 +168,17 @@ SnowTotals14Daysinto2020 = data.frame(values = SnowTotals14Daysinto2020,
 advancedSnowfall = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2020)
 
 # create dataframe of snowfalls 
-newParkCity2019 = data.frame(Year = DailyData2019$Year,
-                             Month = DailyData2019$Month,
-                             Day = DailyData2019$Day,
+newParkCity2019 = data.frame(Year = AverageDailyData2019$Year,
+                             Month = AverageDailyData2019$Month,
+                             Day = AverageDailyData2019$Day,
                              Snowfall = snowTotals2019$values,
                              Snowfall14DaysLater = advancedSnowfall$values)
 ParkCity2019 = newParkCity2019
 
-DailyData2019["Snowfall"] = ParkCity2019$Snowfall
-DailyData2019["Snowfall14DaysLater"] = ParkCity2019$Snowfall14DaysLater
+AverageDailyData2019["Snowfall"] = ParkCity2019$Snowfall
+AverageDailyData2019["Snowfall14DaysLater"] = ParkCity2019$Snowfall14DaysLater
 
-DailyData2019
+AverageDailyData2019
 ```
 
 ```{r}
@@ -178,22 +196,22 @@ SnowTotals14Daysinto2021 = data.frame(values = SnowTotals14Daysinto2021, ind = "
 advancedSnowfall = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2021)
 
 # create dataframe of snowfalls 
-newParkCity2020 = data.frame(Year = DailyData2020$Year,
-                             Month = DailyData2020$Month,
-                             Day = DailyData2020$Day,
+newParkCity2020 = data.frame(Year = AverageDailyData2020$Year,
+                             Month = AverageDailyData2020$Month,
+                             Day = AverageDailyData2020$Day,
                              Snowfall = snowTotals2020$values,
                              Snowfall14DaysLater = advancedSnowfall$values)
 ParkCity2020 = newParkCity2020
 
-DailyData2020["Snowfall"] = ParkCity2020$Snowfall
-DailyData2020["Snowfall14DaysLater"] = ParkCity2020$Snowfall14DaysLater
+AverageDailyData2020["Snowfall"] = ParkCity2020$Snowfall
+AverageDailyData2020["Snowfall14DaysLater"] = ParkCity2020$Snowfall14DaysLater
 
-DailyData2020
+AverageDailyData2020
 
 ```
 
 ```{r}
-ggplot(data = DailyData2020, aes(x = Day, y = WaveHeight)) +
+ggplot(data = AverageDailyData2020, aes(x = Day, y = WaveHeight)) +
   geom_line() +
   facet_wrap(~Month)
 
@@ -202,19 +220,52 @@ ggplot(data = ParkCity2020, aes(x = Day, y = Snowfall14DaysLater)) +
   facet_wrap(~Month)
 ```
 
-
+Linear Regression
 ```{r}
-totalDaily = rbind(DailyData2019, DailyData2020)
-totalDaily <- totalDaily %>%
+totalDaily = rbind(AverageDailyData2019, AverageDailyData2020)
+
+totalDaily = totalDaily %>%
+  ungroup() %>%
   select(-c("Year", "Month", "Day"))
 
 totalDaily
-predictedSnow = lm(Snowfall14DaysLater ~ . , data = totalDaily)
+predictedSnow = lm(Snowfall14DaysLater ~ DewpointTemp + WaveHeight + AirTemp + AverageWavePeriod , data = totalDaily)
 summary(predictedSnow)
 
-colnames(totalDaily)
 ```
 
+Trees
+```{r}
+initial_tree = tree(Snowfall14DaysLater ~ ., data = totalDaily)
+summary(initial_tree)
+plot(initial_tree)
+text(initial_tree, cex = 0.65, digits = 4, pretty = 0)
+initial_tree
+
+# pruned by CV
+prune_initial <- prune.tree(initial_tree, best = 8)
+plot(prune_initial)
+text(prune_initial, cex = 0.65, digits = 4, pretty = 0)
+```
+
+Bagging: 
+mtry = uses all the variables/predictors 
+```{r}
+bag_fit <- randomForest(Snowfall14DaysLater ~ ., data = totalDaily, mtry = ncol(totalDaily) - 1, importance = TRUE)
+plot(bag_fit)
+
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
+
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
+```
 
 
 

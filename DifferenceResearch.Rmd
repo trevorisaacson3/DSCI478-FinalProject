@@ -1,0 +1,138 @@
+---
+title: "DifferenceResearch"
+author: "Trevor Isaacson"
+date: "3/31/2022"
+output: html_document
+---
+
+
+Machine Learning and Cosine Similarity? Ask about slides
+Difference in measurement start of day and end of day, compare that number with snowfall two weeks out
+
+How quickly the buoy pops is going to matter
+Check difference from last 12 hours and/or Height > 7?
+  Use biggest difference from day to compare with daily snow totals
+  Does a negative number correlate to storm ending? 
+  
+```{r setup, include=FALSE, echo = FALSE}
+set.seed(445)
+knitr::opts_chunk$set(echo = FALSE)
+# knitr::opts_chunk$set(fig.width=5, fig.height=3) 
+knitr::opts_chunk$set(message = FALSE)
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library(e1071)
+library(rmarkdown)
+library(glmnet)
+library(knitr)
+library(dplyr)
+library(zoo)
+library(tree)
+library(randomForest)
+```
+
+## Original Buoy Data
+```{r}
+originalBuoy2019 = read.delim("./buoyData/originalBuoy2019.txt", header = FALSE, sep = "")
+colnames(originalBuoy2019) = c("Year", "Month", "Day", "Hour", "Minute", "WindDir", "WindSpeed", "GustSpeed", "WaveHeight", "DominantWavePeriod", "AverageWavePeriod", "DirWavePeriod", "SeaLevelPressure", "AirTemp", "SeaSurfaceTemp", "DewpointTemp", "Visibility", "Tide")
+originalBuoy2019 = originalBuoy2019[-c(1),]
+
+originalBuoy2020 = read.delim("./buoyData/originalBuoy2020.txt", header = FALSE, sep = "")
+colnames(originalBuoy2020) = c("Year", "Month", "Day", "Hour", "Minute", "WindDir", "WindSpeed", "GustSpeed", "WaveHeight", "DominantWavePeriod", "AverageWavePeriod", "DirWavePeriod", "SeaLevelPressure", "AirTemp", "SeaSurfaceTemp", "DewpointTemp", "Visibility", "Tide")
+originalBuoy2020 = originalBuoy2020[-c(1),]
+```
+
+```{r}
+# the measurements we want are measured at minute 40
+originalBuoy2019 = originalBuoy2019 %>%
+  # these aren't measured and remain static
+  select(-c("Tide", "Visibility")) %>%
+  filter(Minute == 40)
+
+originalBuoy2019 = originalBuoy2019 %>%
+  mutate(WindSpeed = as.numeric(as.character(WindSpeed))) %>%
+  mutate(GustSpeed = as.numeric(as.character(GustSpeed))) %>%
+  mutate(AirTemp = as.numeric(as.character(AirTemp))) %>%
+  mutate(SeaSurfaceTemp = as.numeric(as.character(SeaSurfaceTemp))) %>%
+  mutate(DewpointTemp = as.numeric(as.character(DewpointTemp))) %>%
+  mutate(WaveHeight = as.numeric(as.character(WaveHeight))) %>%
+  mutate(DominantWavePeriod = as.numeric(as.character(DominantWavePeriod))) %>%
+  mutate(AverageWavePeriod = as.numeric(as.character(AverageWavePeriod))) %>%
+  mutate(DirWavePeriod = as.numeric(as.character(DirWavePeriod))) %>%
+  mutate(SeaLevelPressure = as.numeric(as.character(SeaLevelPressure))) %>%
+  mutate(WindDir = as.numeric(as.character(WindDir))) %>%
+  mutate(Day = as.numeric(as.character(Day))) %>%
+  mutate(Month = as.numeric(as.character(Month))) %>%
+  mutate(Year = as.numeric(as.character(Year))) %>%
+  filter(WaveHeight != 99.00) %>%
+  select(-c(Minute))
+
+originalBuoy2020 = originalBuoy2020 %>%
+  # these aren't measured and remain static
+  select(-c("Tide", "Visibility")) %>%
+  filter(Minute == 40)
+
+originalBuoy2020 = originalBuoy2020 %>%
+  mutate(WindSpeed = as.numeric(as.character(WindSpeed))) %>%
+  mutate(GustSpeed = as.numeric(as.character(GustSpeed))) %>%
+  mutate(AirTemp = as.numeric(as.character(AirTemp))) %>%
+  mutate(SeaSurfaceTemp = as.numeric(as.character(SeaSurfaceTemp))) %>%
+  mutate(DewpointTemp = as.numeric(as.character(DewpointTemp))) %>%
+  mutate(WaveHeight = as.numeric(as.character(WaveHeight))) %>%
+  mutate(DominantWavePeriod = as.numeric(as.character(DominantWavePeriod))) %>%
+  mutate(AverageWavePeriod = as.numeric(as.character(AverageWavePeriod))) %>%
+  mutate(DirWavePeriod = as.numeric(as.character(DirWavePeriod))) %>%
+  mutate(SeaLevelPressure = as.numeric(as.character(SeaLevelPressure))) %>%
+  mutate(WindDir = as.numeric(as.character(WindDir))) %>%
+  mutate(Day = as.numeric(as.character(Day))) %>%
+  mutate(Month = as.numeric(as.character(Month))) %>%
+  mutate(Year = as.numeric(as.character(Year))) %>%
+  filter(WaveHeight != 99.00) %>%
+  select(-c(Minute))
+
+# originalBuoy2019
+# originalBuoy2020
+
+originalBuoys = rbind(originalBuoy2019, originalBuoy2020)
+originalBuoys
+```
+
+How quickly the buoy pops is going to matter
+Check difference from last 12 hours and/or Height > 7?
+  Use biggest difference from day to compare with daily snow totals
+  Does a negative number correlate to storm ending?
+```{r}
+waveHeightDiff12Hours = (originalBuoys$WaveHeight[1:12] -2)
+for (i in 13:nrow(originalBuoys)){
+  waveHeightDiff12Hours2019[i] = originalBuoys$WaveHeight[i] - originalBuoys$WaveHeight[i - 12]
+}
+originalBuoys["WaveHeightDiff12Hours"] = waveHeightDiff12Hours2019
+
+```
+
+```{r}
+originalBuoys %>%
+  select(c(Year, Month, Day, Hour, WaveHeight, WaveHeightDiff12Hours)) %>%
+  filter(WaveHeightDiff12Hours <  -1.5 | WaveHeightDiff12Hours > 2) %>%
+  ggplot(aes(x = Day, y = WaveHeightDiff12Hours)) +
+    geom_point() +
+    facet_wrap(~Month + Year)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
