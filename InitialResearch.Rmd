@@ -371,7 +371,7 @@ summary(predictedJH)
 predictPC = predict(predictedPC, newdata = testingPC, type = "response")
 predictJH = predict(predictedJH, newdata = testingJH, type = "response")
 
-MSE_testingPC = (testingPC$AvgSnowfall3DayWindow - predictPC)^2
+MSE_testingPC = round(mean((testingPC$AvgSnowfall3DayWindow - predictPC)^2))
 print(paste("MSE of Testing Set: ", round(mean(MSE_testingPC), 4)))
 
 MSE_testingJH = round(mean((testingJH$AvgSnowfall3DayWindow - predictJH)^2), 4)
@@ -484,7 +484,7 @@ location = c("Park City", "Jackson Hole", "Park City", "Jackson Hole", "Park Cit
 MSEnumbers = c(MSE_testingPC, MSE_testingJH, treePC_MSE, treeJH_MSE, bag_MSEPC, bag_MSEJH)
 
 
-finalMSE = data.frame(Methods = method, Location = location, MSE_Inches = round(exp(MSEnumbers), 2))
+finalMSE = data.frame(Methods = method, Location = location, MSE_Inches = MSEnumbers)
 finalMSE
 ```
 
