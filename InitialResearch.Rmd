@@ -219,13 +219,13 @@ AverageDailyData2020["Snowfall14DaysLater"] = PC2020$Snowfall14DaysLater
 AverageDailyData2020["Snowfall15DaysLater"] = PC2020$Snowfall15DaysLater
 AverageDailyData2020["AvgSnowfall3DayWindow"] = (PC2020$Snowfall13DaysLater + PC2020$Snowfall14DaysLater + PC2020$Snowfall15DaysLater) /3 
 
-totalDailyParkCity = rbind(AverageDailyData2019, AverageDailyData2020)
-totalDailyParkCity["Location"] = "ParkCity"
+totalDailyPC = rbind(AverageDailyData2019, AverageDailyData2020)
+# totalDailyPC["Location"] = "ParkCity"
 
-totalDailyParkCity = totalDailyParkCity %>%
+totalDailyPC = totalDailyPC %>%
   ungroup()
 
-totalDailyParkCity
+totalDailyPC
 ```
 
 ## Jackson Hole Snowfall Data
@@ -327,7 +327,7 @@ AverageDailyData2020["Snowfall15DaysLater"] = JH2020$Snowfall15DaysLater
 AverageDailyData2020["AvgSnowfall3DayWindow"] = (JH2020$Snowfall13DaysLater + JH2020$Snowfall14DaysLater + JH2020$Snowfall15DaysLater) /3 
 
 totalDailyJH = rbind(AverageDailyData2019, AverageDailyData2020)
-totalDailyJH["Location"] = "JacksonHole"
+# totalDailyJH["Location"] = "JacksonHole"
 
 totalDailyJH  = totalDailyJH  %>%
   ungroup()
@@ -338,85 +338,155 @@ totalDailyJH
 
 
 ```{r}
-# totalDaily = rbind(totalDailyParkCity, totalDailyJH)
+# totalDaily = rbind(totalDailyPC, totalDailyJH)
 # 
-# totalDaily = totalDaily %>%
-#   filter(Month < 5 | Month < 9) %>%
-#   select(-c(Year, Month, Day, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater)) %>%
-#   mutate(Location = as.factor(Location))
-# 
-# totalDaily
+totalDailyPC = totalDailyPC %>%
+  filter(Month < 5 | Month < 9) %>%
+  select(-c(Year, Month, Day, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater))
+
+totalDailyJH = totalDailyJH %>%
+  filter(Month < 5 | Month < 9) %>%
+  select(-c(Year, Month, Day, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater))
+
+totalDailyJH
+
   
-trn = sample(seq_len(nrow(totalDaily)), 675)
-training = totalDaily[trn, ]
-testing = totalDaily[-trn, ]
+trn1 = sample(seq_len(nrow(totalDailyJH)), 350)
+trainingJH = totalDailyJH[trn1, ]
+testingJH = totalDailyJH[-trn1, ]
+
+trn2 = sample(seq_len(nrow(totalDailyPC)), 350)
+trainingPC = totalDailyPC[trn1, ]
+testingPC = totalDailyPC[-trn1, ]
 ```
 
 
-Linear Regression with all Data
+Linear Regression for both sets of data
 ```{r}
-predictedSnow = lm(AvgSnowfall3DayWindow ~ ., data = training)
-summary(predictedSnow)
+predictedPC = lm(AvgSnowfall3DayWindow ~ ., data = trainingPC)
+predictedJH = lm(AvgSnowfall3DayWindow ~ ., data = trainingJH)
+summary(predictedPC)
+summary(predictedJH)
 
-linear_predict = predict(predictedSnow, newdata = testing, type = "response")
-MSE_testing = (testing$AvgSnowfall3DayWindow - linear_predict)^2
-print(paste("MSE of Testing Set: ", round(mean(MSE_testing), 4)))
+predictPC = predict(predictedPC, newdata = testingPC, type = "response")
+predictJH = predict(predictedJH, newdata = testingJH, type = "response")
+
+MSE_testingPC = (testingPC$AvgSnowfall3DayWindow - predictPC)^2
+print(paste("MSE of Testing Set: ", round(mean(MSE_testingPC), 4)))
+
+MSE_testingJH = round(mean((testingJH$AvgSnowfall3DayWindow - predictJH)^2), 4)
+print(paste("MSE of Testing Set: ", MSE_testingJH))
 ```
 
-Trees with All Data
+Trees for Park City
 ```{r}
-initial_tree = tree(AvgSnowfall3DayWindow ~ ., data = training)
-summary(initial_tree)
-plot(initial_tree)
-text(initial_tree, cex = 0.65, digits = 4, pretty = 0)
-initial_tree
+initial_treePC = tree(AvgSnowfall3DayWindow ~ ., data = trainingPC)
+summary(initial_treePC)
+plot(initial_treePC)
+text(initial_treePC, cex = 0.65, digits = 4, pretty = 0)
+initial_treePC
 
-initial_predict = predict(initial_tree, newdata = testing)
-tree_MSE = round(mean((testing$AvgSnowfall3DayWindow - initial_predict)^2), 4)
-print(paste("Test MSE of Initial Tree: ", tree_MSE))
+initial_tree_predictPC = predict(initial_treePC, newdata = testingPC)
+treePC_MSE = round(mean((testingPC$AvgSnowfall3DayWindow - initial_tree_predictPC)^2), 4)
+print(paste("Test MSE of Initial Tree: ", treePC_MSE))
 
 # cross validation
-initial_cv = cv.tree(initial_tree)
+initial_treePC_cv = cv.tree(initial_treePC)
 ggplot() +
-  geom_point(aes(x = initial_cv$size, y = initial_cv$dev)) + 
-  geom_line(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  geom_point(aes(x = initial_treePC_cv$size, y = initial_treePC_cv$dev)) + 
+  geom_line(aes(x = initial_treePC_cv$size, y = initial_treePC_cv$dev)) + 
   ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
 
 # pruned by CV
-prune_initial <- prune.tree(initial_tree, best = 5)
-plot(prune_initial)
-text(prune_initial, cex = 0.65, digits = 4, pretty = 0)
+prune_initialPC <- prune.tree(initial_treePC, best = 5)
+plot(prune_initialPC)
+text(prune_initialPC, cex = 0.65, digits = 4, pretty = 0)
+title("Park City")
 ```
 
-Bagging with All Data: 
-mtry = uses all the variables/predictors 
+Trees for Jackson Hole
 ```{r}
-bag_fit <- randomForest(AvgSnowfall3DayWindow ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
+initial_treeJH = tree(AvgSnowfall3DayWindow ~ ., data = trainingJH)
+summary(initial_treeJH)
+plot(initial_treeJH)
+text(initial_treeJH, cex = 0.65, digits = 4, pretty = 0)
+initial_treeJH
 
-bag_predict = predict(bag_fit, testing, type = "response")
-bag_MSE = round(mean((testing$AvgSnowfall3DayWindow - bag_predict)^2), 4)
-print(paste("Test MSE of Bagging: ", bag_MSE))
+initial_tree_predictJH = predict(initial_treeJH, newdata = testingJH)
+treeJH_MSE = round(mean((testingJH$AvgSnowfall3DayWindow - initial_tree_predictJH)^2), 4)
+print(paste("Test MSE of Initial Tree: ", treeJH_MSE))
 
-plot(bag_fit)
+# cross validation
+initial_treeJH_cv = cv.tree(initial_treeJH)
+ggplot() +
+  geom_point(aes(x = initial_treeJH_cv$size, y = initial_treeJH_cv$dev)) + 
+  geom_line(aes(x = initial_treeJH_cv$size, y = initial_treeJH_cv$dev)) + 
+  ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
 
-data.frame(bag_fit$importance) %>%
-  mutate(variable = rownames(bag_fit$importance)) %>%
+# pruned by CV
+prune_initialJH <- prune.tree(initial_treeJH, best = 5)
+plot(prune_initialJH)
+text(prune_initialJH, cex = 0.65, digits = 4, pretty = 0)
+title("Jackson Hole")
+```
+
+
+
+Bagging for Park City: 
+```{r}
+bag_fitPC <- randomForest(AvgSnowfall3DayWindow ~ ., data = trainingPC, mtry = ncol(trainingPC) - 1, importance = TRUE)
+
+bag_predictPC = predict(bag_fitPC, testingPC, type = "response")
+bag_MSEPC = round(mean((testingPC$AvgSnowfall3DayWindow - bag_predictPC)^2), 4)
+print(paste("Test MSE of Bagging: ", bag_MSEPC))
+
+plot(bag_fitPC)
+
+data.frame(bag_fitPC$importance) %>%
+  mutate(variable = rownames(bag_fitPC$importance)) %>%
   mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
   ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
   geom_point(aes(X.IncMSE, variable))  
 
-data.frame(bag_fit$importance) %>%
-  mutate(variable = rownames(bag_fit$importance)) %>%
+data.frame(bag_fitPC$importance) %>%
+  mutate(variable = rownames(bag_fitPC$importance)) %>%
   mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
   ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
   geom_point(aes(IncNodePurity, variable))  
 ```
 
 
+Bagging for Jackson Hole: 
+```{r}
+bag_fitJH <- randomForest(AvgSnowfall3DayWindow ~ ., data = trainingJH, mtry = ncol(trainingJH) - 1, importance = TRUE)
+
+bag_predictJH = predict(bag_fitJH, testingJH, type = "response")
+bag_MSEJH = round(mean((testingJH$AvgSnowfall3DayWindow - bag_predictJH)^2), 4)
+print(paste("Test MSE of Bagging: ", bag_MSEJH))
+
+plot(bag_fitJH)
+
+data.frame(bag_fitJH$importance) %>%
+  mutate(variable = rownames(bag_fitJH$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
+
+data.frame(bag_fitJH$importance) %>%
+  mutate(variable = rownames(bag_fitJH$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
+```
+```{r}
+method = c("Linear Regression", "Linear Regression", "Trees", "Trees", "Bagging", "Bagging")
+location = c("Park City", "Jackson Hole", "Park City", "Jackson Hole", "Park City", "Jackson Hole")
+MSEnumbers = c(MSE_testingPC, MSE_testingJH, treePC_MSE, treeJH_MSE, bag_MSEPC, bag_MSEJH)
 
 
-
-
+finalMSE = data.frame(Methods = method, Location = location, MSE_Inches = round(exp(MSEnumbers), 2))
+finalMSE
+```
 
 
 
