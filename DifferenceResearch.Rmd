@@ -216,37 +216,69 @@ for (i in 13:nrow(originalBuoys)){
 }
 originalBuoys["WaveHeightDiff12Hours"] = waveHeightDiff12Hours
 
-originalBuoys["AvgSnowfall3DayWindow"] = ((originalBuoys$Snowfall13DaysLater + originalBuoys$Snowfall14DaysLater + originalBuoys$Snowfall15DaysLater) /3) /24
+originalBuoys["AvgSnowfall3DayWindow"] = ((originalBuoys$Snowfall13DaysLater + originalBuoys$Snowfall14DaysLater + originalBuoys$Snowfall15DaysLater) /3)
 ```
 
-
+Removes the time element along with Summer months
 ```{r}
 timeLessData = originalBuoys %>%
-  select(-c(Year, Day, Hour, Month, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater))
-predictedSnow = lm(AvgSnowfall3DayWindow ~ ., data = timeLessData)
+  filter(Month < 5 | Month > 9) %>%
+  select(-c(Year, Day, Hour, Month, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater, Snowfall))
+
+timeLessData
+```
+
+Split Data into Testing and Training (70/30)
+```{r}
+trn = sample(seq_len(nrow(timeLessData)), 7000)
+training = timeLessData[trn, ]
+testing = timeLessData[-trn, ]
+```
+
+Linear Regression:
+```{r}
+predictedSnow = lm(AvgSnowfall3DayWindow ~ ., data = training)
 summary(predictedSnow)
+
+linear_predict = predict(predictedSnow, newdata = testing, type = "response")
+MSE_testing = (testing$AvgSnowfall3DayWindow - linear_predict)^2
+print(paste("MSE of Testing Set: ", round(mean(MSE_testing), 4)))
 ```
 
 Trees
 ```{r}
-initial_tree = tree(AvgSnowfall3DayWindow  ~ ., data = timeLessData)
+initial_tree = tree(AvgSnowfall3DayWindow ~ ., data = training)
 summary(initial_tree)
 plot(initial_tree)
 text(initial_tree, cex = 0.65, digits = 4, pretty = 0)
 initial_tree
 
-# tree.cv = cv.tree(initial_tree)
-# plot(tree.cv$size, sqrt(tree.cv$dev / nrow(initial)), type = "b", xlab = "Tree Size", ylab = "CV_RMSE")
+initial_predict = predict(initial_tree, newdata = testing)
+tree_MSE = round(mean((testing$AvgSnowfall3DayWindow - initial_predict)^2), 4)
+print(paste("Test MSE of Initial Tree: ", tree_MSE))
+
+# cross validation
+initial_cv = cv.tree(initial_tree)
+ggplot() +
+  geom_point(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  geom_line(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
 
 # pruned by CV
-prune_initial <- prune.tree(initial_tree, best = 8)
+prune_initial <- prune.tree(initial_tree, best = 7)
 plot(prune_initial)
 text(prune_initial, cex = 0.65, digits = 4, pretty = 0)
 ```
 
+
 Bagging: 
 ```{r}
-bag_fit <- randomForest(AvgSnowfall3DayWindow ~ ., data = timeLessData, mtry = ncol(timeLessData) - 1, importance = TRUE)
+bag_fit <- randomForest(AvgSnowfall3DayWindow ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
+
+bag_predict = predict(bag_fit, testing, type = "response")
+bag_MSE = round(mean((testing$AvgSnowfall3DayWindow - bag_predict)^2), 4)
+print(paste("Test MSE of Bagging: ", bag_MSE))
+
 plot(bag_fit)
 
 data.frame(bag_fit$importance) %>%

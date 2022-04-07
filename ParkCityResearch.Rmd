@@ -225,17 +225,6 @@ AverageDailyData2020
 ```
 
 ```{r}
-ParkCity2019 %>%
-  ggplot(aes(x = Day, y = Snowfall)) +
-    geom_line() +
-    facet_wrap(~Month)
-ParkCity2020 %>%
-  ggplot(aes(x = Day, y = Snowfall)) +
-    geom_line() +
-    facet_wrap(~Month)
-```
-
-```{r}
 totalDaily = rbind(AverageDailyData2019, AverageDailyData2020)
 
 totalDaily = totalDaily %>%
@@ -255,6 +244,9 @@ Linear Regression with all Data
 predictedSnow = lm(AvgSnowfall3DayWindow ~ ., data = training)
 summary(predictedSnow)
 
+linear_predict = predict(predictedSnow, newdata = testing, type = "response")
+MSE_testing = (testing$AvgSnowfall3DayWindow - linear_predict)^2
+print(paste("MSE of Testing Set: ", round(mean(MSE_testing), 4)))
 ```
 
 Trees with All Data
@@ -264,6 +256,17 @@ summary(initial_tree)
 plot(initial_tree)
 text(initial_tree, cex = 0.65, digits = 4, pretty = 0)
 initial_tree
+
+initial_predict = predict(initial_tree, newdata = testing)
+tree_MSE = round(mean((testing$AvgSnowfall3DayWindow - initial_predict)^2), 4)
+print(paste("Test MSE of Initial Tree: ", tree_MSE))
+
+# cross validation
+initial_cv = cv.tree(initial_tree)
+ggplot() +
+  geom_point(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  geom_line(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
 
 # pruned by CV
 prune_initial <- prune.tree(initial_tree, best = 5)
@@ -275,6 +278,11 @@ Bagging with All Data:
 mtry = uses all the variables/predictors 
 ```{r}
 bag_fit <- randomForest(AvgSnowfall3DayWindow ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
+
+bag_predict = predict(bag_fit, testing, type = "response")
+bag_MSE = round(mean((testing$AvgSnowfall3DayWindow - bag_predict)^2), 4)
+print(paste("Test MSE of Bagging: ", bag_MSE))
+
 plot(bag_fit)
 
 data.frame(bag_fit$importance) %>%
