@@ -13,6 +13,10 @@ Check difference from last 12 hours and/or Height > 7?
   Use biggest difference from day to compare with daily snow totals
   Does a negative number correlate to storm ending? 
   
+Add Jackson Hole data
+Try removing summer months
+Split training and testing
+  
   
 ```{r setup, include=FALSE, echo = FALSE}
 set.seed(445)
@@ -212,8 +216,7 @@ for (i in 13:nrow(originalBuoys)){
 }
 originalBuoys["WaveHeightDiff12Hours"] = waveHeightDiff12Hours
 
-originalBuoys["AvgSnowfall3DayWindow"] = (originalBuoys$Snowfall13DaysLater + originalBuoys$Snowfall14DaysLater + originalBuoys$Snowfall15DaysLater) /3 
-# originalBuoys["AvgSnowfallPerHour"] = originalBuoys$AvgSnowfall3DayWindow /24
+originalBuoys["AvgSnowfall3DayWindow"] = ((originalBuoys$Snowfall13DaysLater + originalBuoys$Snowfall14DaysLater + originalBuoys$Snowfall15DaysLater) /3) /24
 ```
 
 
@@ -231,6 +234,9 @@ summary(initial_tree)
 plot(initial_tree)
 text(initial_tree, cex = 0.65, digits = 4, pretty = 0)
 initial_tree
+
+# tree.cv = cv.tree(initial_tree)
+# plot(tree.cv$size, sqrt(tree.cv$dev / nrow(initial)), type = "b", xlab = "Tree Size", ylab = "CV_RMSE")
 
 # pruned by CV
 prune_initial <- prune.tree(initial_tree, best = 8)
