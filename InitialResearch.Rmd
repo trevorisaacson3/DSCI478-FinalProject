@@ -111,36 +111,36 @@ AverageDailyData2020 = originalBuoy2020 %>%
 
 ## Park City Snowfall Data
 ```{r}
-ParkCity2019 = read.csv("./snowfallData/ParkCitySnowfall2019.csv")
-ParkCity2020 = read.csv("./snowfallData/ParkCitySnowfall2020.csv")
-ParkCity2021 = read.csv("./snowfallData/ParkCitySnowfall2021.csv")
+PC2019 = read.csv("./snowfallData/ParkCitySnowfall2019.csv")
+PC2020 = read.csv("./snowfallData/ParkCitySnowfall2020.csv")
+PC2021 = read.csv("./snowfallData/ParkCitySnowfall2021.csv")
 ```
 
 ```{r warning = FALSE}
 # change M, T and - to 0
-ParkCity2019 = ParkCity2019 %>%
+PC2019 = PC2019 %>%
   mutate_if(is.factor, as.character) %>%
   mutate_if(is.character, as.numeric)
-ParkCity2019[is.na(ParkCity2019)] <- 0
+PC2019[is.na(PC2019)] <- 0
 
-ParkCity2020 = ParkCity2020 %>%
+PC2020 = PC2020 %>%
   mutate_if(is.factor, as.character) %>%
   mutate_if(is.character, as.numeric)
-ParkCity2020[is.na(ParkCity2020)] <- 0
+PC2020[is.na(PC2020)] <- 0
 
-ParkCity2021 = ParkCity2021 %>%
+PC2021 = PC2021 %>%
   mutate_if(is.factor, as.character) %>%
   mutate_if(is.character, as.numeric)
-ParkCity2021[is.na(ParkCity2021)] <- 0
+PC2021[is.na(PC2021)] <- 0
 
 ```
 
-The Dataframe ParkCity2019 shows snowfall totals for the corresponding day.  
+The Dataframe PC2019 shows snowfall totals for the corresponding day.  
 Snowfall column shows the snowfall on that day.  
 Snowfall14DaysLater shows the snowfall two weeks after that day.  This will be used to determine if waveHeight increases in Hawaii lead to snow 14 days later in Utah
 ```{r warning = FALSE}
 # make snowtotals into one column
-ParkCitySnowTotals2019 = stack(ParkCity2019[2:ncol(ParkCity2019)])
+ParkCitySnowTotals2019 = stack(PC2019[2:ncol(PC2019)])
 ParkCitySnowTotals2019 = ParkCitySnowTotals2019[-c(60,61,62,124,168,186,248,341), ]
 
 # advanced snowfall = park city snow two weeks in advance
@@ -150,9 +150,9 @@ advanceSnowTotals14Days = ParkCitySnowTotals2019[-c(1:14), ]
 advanceSnowTotals15Days = ParkCitySnowTotals2019[-c(1:15), ]
 
 # add first 14 days of next year to end
-SnowTotals13Daysinto2020 = ParkCity2020[1:13, "Jan"]
-SnowTotals14Daysinto2020 = ParkCity2020[1:14, "Jan"]
-SnowTotals15Daysinto2020 = ParkCity2020[1:15, "Jan"]
+SnowTotals13Daysinto2020 = PC2020[1:13, "Jan"]
+SnowTotals14Daysinto2020 = PC2020[1:14, "Jan"]
+SnowTotals15Daysinto2020 = PC2020[1:15, "Jan"]
 
 SnowTotals13Daysinto2020 = data.frame(values = SnowTotals13Daysinto2020, ind = "Jan")
 SnowTotals14Daysinto2020 = data.frame(values = SnowTotals14Daysinto2020, ind = "Jan")
@@ -163,27 +163,27 @@ advancedSnowfall14 = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2020)
 advancedSnowfall15 = rbind(advanceSnowTotals15Days, SnowTotals15Daysinto2020)
 
 # create dataframe of snowfalls 
-newParkCity2019 = data.frame(Year = AverageDailyData2019$Year,
+newPC2019 = data.frame(Year = AverageDailyData2019$Year,
                              Month = AverageDailyData2019$Month,
                              Day = AverageDailyData2019$Day,
                              Snowfall = ParkCitySnowTotals2019$values,
                              Snowfall13DaysLater = advancedSnowfall13$values,
                              Snowfall14DaysLater = advancedSnowfall14$values,
                              Snowfall15DaysLater = advancedSnowfall15$values)
-ParkCity2019 = newParkCity2019
+PC2019 = newPC2019
 
-AverageDailyData2019["Snowfall"] = ParkCity2019$Snowfall
-AverageDailyData2019["Snowfall13DaysLater"] = ParkCity2019$Snowfall13DaysLater
-AverageDailyData2019["Snowfall14DaysLater"] = ParkCity2019$Snowfall14DaysLater
-AverageDailyData2019["Snowfall15DaysLater"] = ParkCity2019$Snowfall15DaysLater
-AverageDailyData2019["AvgSnowfall3DayWindow"] = (ParkCity2019$Snowfall13DaysLater + ParkCity2019$Snowfall14DaysLater + ParkCity2019$Snowfall15DaysLater) /3 
+AverageDailyData2019["Snowfall"] = PC2019$Snowfall
+AverageDailyData2019["Snowfall13DaysLater"] = PC2019$Snowfall13DaysLater
+AverageDailyData2019["Snowfall14DaysLater"] = PC2019$Snowfall14DaysLater
+AverageDailyData2019["Snowfall15DaysLater"] = PC2019$Snowfall15DaysLater
+AverageDailyData2019["AvgSnowfall3DayWindow"] = (PC2019$Snowfall13DaysLater + PC2019$Snowfall14DaysLater + PC2019$Snowfall15DaysLater) /3 
 
 AverageDailyData2019
 ```
 
 ```{r}
 # make snowtotals into one column
-ParkCitySnowTotals2020 = stack(ParkCity2020[2:ncol(ParkCity2020)])
+ParkCitySnowTotals2020 = stack(PC2020[2:ncol(PC2020)])
 ParkCitySnowTotals2020 = ParkCitySnowTotals2020[-c(60,61,124,186,194,248,341), ]
 
 # advanced snowfall = park city snow two weeks in advance
@@ -192,9 +192,9 @@ advanceSnowTotals13Days = ParkCitySnowTotals2020[-c(1:13), ]
 advanceSnowTotals14Days = ParkCitySnowTotals2020[-c(1:14), ]
 advanceSnowTotals15Days = ParkCitySnowTotals2020[-c(1:15), ]
 # add first 14 days of next year to end
-SnowTotals13Daysinto2021 = ParkCity2021[1:13, "Jan"]
-SnowTotals14Daysinto2021 = ParkCity2021[1:14, "Jan"]
-SnowTotals15Daysinto2021 = ParkCity2021[1:15, "Jan"]
+SnowTotals13Daysinto2021 = PC2021[1:13, "Jan"]
+SnowTotals14Daysinto2021 = PC2021[1:14, "Jan"]
+SnowTotals15Daysinto2021 = PC2021[1:15, "Jan"]
 
 SnowTotals13Daysinto2021 = data.frame(values = SnowTotals13Daysinto2021, ind = "Jan")
 SnowTotals14Daysinto2021 = data.frame(values = SnowTotals14Daysinto2021, ind = "Jan")
@@ -205,35 +205,149 @@ advancedSnowfall14 = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2021)
 advancedSnowfall15 = rbind(advanceSnowTotals15Days, SnowTotals15Daysinto2021)
 
 # create dataframe of snowfalls 
-newParkCity2020 = data.frame(Year = AverageDailyData2020$Year,
+newPC2020 = data.frame(Year = AverageDailyData2020$Year,
                              Month = AverageDailyData2020$Month,
                              Day = AverageDailyData2020$Day,
                              Snowfall = ParkCitySnowTotals2020$values,
                              Snowfall13DaysLater = advancedSnowfall13$values,
                              Snowfall14DaysLater = advancedSnowfall14$values,
                              Snowfall15DaysLater = advancedSnowfall15$values)
-ParkCity2020 = newParkCity2020
+PC2020 = newPC2020
+AverageDailyData2020["Snowfall"] = PC2020$Snowfall
+AverageDailyData2020["Snowfall13DaysLater"] = PC2020$Snowfall13DaysLater
+AverageDailyData2020["Snowfall14DaysLater"] = PC2020$Snowfall14DaysLater
+AverageDailyData2020["Snowfall15DaysLater"] = PC2020$Snowfall15DaysLater
+AverageDailyData2020["AvgSnowfall3DayWindow"] = (PC2020$Snowfall13DaysLater + PC2020$Snowfall14DaysLater + PC2020$Snowfall15DaysLater) /3 
 
-AverageDailyData2020["Snowfall"] = ParkCity2020$Snowfall
-AverageDailyData2020["Snowfall13DaysLater"] = ParkCity2020$Snowfall13DaysLater
-AverageDailyData2020["Snowfall14DaysLater"] = ParkCity2020$Snowfall14DaysLater
-AverageDailyData2020["Snowfall15DaysLater"] = ParkCity2020$Snowfall15DaysLater
-AverageDailyData2020["AvgSnowfall3DayWindow"] = (ParkCity2020$Snowfall13DaysLater + ParkCity2020$Snowfall14DaysLater + ParkCity2020$Snowfall15DaysLater) /3 
+totalDailyParkCity = rbind(AverageDailyData2019, AverageDailyData2020)
+totalDailyParkCity["Location"] = "ParkCity"
 
-AverageDailyData2020
+totalDailyParkCity = totalDailyParkCity %>%
+  ungroup()
+
+totalDailyParkCity
+```
+
+## Jackson Hole Snowfall Data
+```{r}
+JH2019 = read.csv("./snowfallData/JacksonHoleSnowfall2019.csv")
+JH2020 = read.csv("./snowfallData/JacksonHoleSnowfall2020.csv")
+JH2021 = read.csv("./snowfallData/JacksonHoleSnowfall2021.csv")
+```
+
+```{r warning = FALSE}
+# change M, T and - to 0
+JH2019 = JH2019 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+JH2019[is.na(JH2019)] <- 0
+
+JH2020 = JH2020 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+JH2020[is.na(JH2020)] <- 0
+
+JH2021 = JH2021 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+JH2021[is.na(JH2021)] <- 0
+
+# Jackson Hole 2019
+JHSnowTotals2019 = stack(JH2019[2:ncol(JH2019)])
+JHSnowTotals2019 = JHSnowTotals2019[-c(60,61,62,124,168,186,248,341), ]
+# advanced snowfall = park city snow two weeks in advance
+# remove first 14 days of year
+advanceSnowTotals13Days = JHSnowTotals2019[-c(1:13), ]
+advanceSnowTotals14Days = JHSnowTotals2019[-c(1:14), ]
+advanceSnowTotals15Days = JHSnowTotals2019[-c(1:15), ]
+
+# add first 14 days of next year to end
+SnowTotals13Daysinto2020 = JH2020[1:13, "Jan"]
+SnowTotals14Daysinto2020 = JH2020[1:14, "Jan"]
+SnowTotals15Daysinto2020 = JH2020[1:15, "Jan"]
+
+SnowTotals13Daysinto2020 = data.frame(values = SnowTotals13Daysinto2020, ind = "Jan")
+SnowTotals14Daysinto2020 = data.frame(values = SnowTotals14Daysinto2020, ind = "Jan")
+SnowTotals15Daysinto2020 = data.frame(values = SnowTotals15Daysinto2020, ind = "Jan")
+
+advancedSnowfall13 = rbind(advanceSnowTotals13Days, SnowTotals13Daysinto2020)
+advancedSnowfall14 = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2020)
+advancedSnowfall15 = rbind(advanceSnowTotals15Days, SnowTotals15Daysinto2020)
+
+# create dataframe of snowfalls 
+newJH2019 = data.frame(Year = AverageDailyData2019$Year,
+                             Month = AverageDailyData2019$Month,
+                             Day = AverageDailyData2019$Day,
+                             Snowfall = JHSnowTotals2019$values,
+                             Snowfall13DaysLater = advancedSnowfall13$values,
+                             Snowfall14DaysLater = advancedSnowfall14$values,
+                             Snowfall15DaysLater = advancedSnowfall15$values)
+JH2019 = newJH2019
+AverageDailyData2019["Snowfall"] = JH2019$Snowfall
+AverageDailyData2019["Snowfall13DaysLater"] = JH2019$Snowfall13DaysLater
+AverageDailyData2019["Snowfall14DaysLater"] = JH2019$Snowfall14DaysLater
+AverageDailyData2019["Snowfall15DaysLater"] = JH2019$Snowfall15DaysLater
+AverageDailyData2019["AvgSnowfall3DayWindow"] = (JH2019$Snowfall13DaysLater + JH2019$Snowfall14DaysLater + JH2019$Snowfall15DaysLater) /3 
+
+# Jackson Hole 2020
+JHSnowTotals2020 = stack(JH2020[2:ncol(JH2020)])
+JHSnowTotals2020 = JHSnowTotals2020 [-c(60,61,124,186,194,248,341), ]
+
+# advanced snowfall = park city snow two weeks in advance
+# remove first 14 days of year
+advanceSnowTotals13Days = JHSnowTotals2020 [-c(1:13), ]
+advanceSnowTotals14Days = JHSnowTotals2020 [-c(1:14), ]
+advanceSnowTotals15Days = JHSnowTotals2020 [-c(1:15), ]
+# add first 14 days of next year to end
+SnowTotals13Daysinto2021 = JH2021[1:13, "Jan"]
+SnowTotals14Daysinto2021 = JH2021[1:14, "Jan"]
+SnowTotals15Daysinto2021 = JH2021[1:15, "Jan"]
+
+SnowTotals13Daysinto2021 = data.frame(values = SnowTotals13Daysinto2021, ind = "Jan")
+SnowTotals14Daysinto2021 = data.frame(values = SnowTotals14Daysinto2021, ind = "Jan")
+SnowTotals15Daysinto2021 = data.frame(values = SnowTotals15Daysinto2021, ind = "Jan")
+
+advancedSnowfall13 = rbind(advanceSnowTotals13Days, SnowTotals13Daysinto2021)
+advancedSnowfall14 = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2021)
+advancedSnowfall15 = rbind(advanceSnowTotals15Days, SnowTotals15Daysinto2021)
+
+# create dataframe of snowfalls 
+newJH2020 = data.frame(Year = AverageDailyData2020$Year,
+                             Month = AverageDailyData2020$Month,
+                             Day = AverageDailyData2020$Day,
+                             Snowfall = JHSnowTotals2020 $values,
+                             Snowfall13DaysLater = advancedSnowfall13$values,
+                             Snowfall14DaysLater = advancedSnowfall14$values,
+                             Snowfall15DaysLater = advancedSnowfall15$values)
+JH2020 = newJH2020
+AverageDailyData2020["Snowfall"] = JH2020$Snowfall
+AverageDailyData2020["Snowfall13DaysLater"] = JH2020$Snowfall13DaysLater
+AverageDailyData2020["Snowfall14DaysLater"] = JH2020$Snowfall14DaysLater
+AverageDailyData2020["Snowfall15DaysLater"] = JH2020$Snowfall15DaysLater
+AverageDailyData2020["AvgSnowfall3DayWindow"] = (JH2020$Snowfall13DaysLater + JH2020$Snowfall14DaysLater + JH2020$Snowfall15DaysLater) /3 
+
+totalDailyJH = rbind(AverageDailyData2019, AverageDailyData2020)
+totalDailyJH["Location"] = "JacksonHole"
+
+totalDailyJH  = totalDailyJH  %>%
+  ungroup()
+
+totalDailyJH
 
 ```
 
+
 ```{r}
-totalDaily = rbind(AverageDailyData2019, AverageDailyData2020)
-
-totalDaily = totalDaily %>%
-  ungroup() %>%
-  select(-c(Year, Month, Day, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater))
-
-totalDaily
-
-trn = sample(seq_len(nrow(totalDaily)), 580)
+# totalDaily = rbind(totalDailyParkCity, totalDailyJH)
+# 
+# totalDaily = totalDaily %>%
+#   filter(Month < 5 | Month < 9) %>%
+#   select(-c(Year, Month, Day, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater)) %>%
+#   mutate(Location = as.factor(Location))
+# 
+# totalDaily
+  
+trn = sample(seq_len(nrow(totalDaily)), 675)
 training = totalDaily[trn, ]
 testing = totalDaily[-trn, ]
 ```
