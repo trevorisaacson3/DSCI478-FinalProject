@@ -13,10 +13,6 @@ Check difference from last 12 hours and/or Height > 7?
   Use biggest difference from day to compare with daily snow totals
   Does a negative number correlate to storm ending? 
   
-Add Jackson Hole data
-Try removing summer months
-Split training and testing
-  
   
 ```{r setup, include=FALSE, echo = FALSE}
 set.seed(445)
