@@ -7,8 +7,7 @@ output: html_document
 
 
 Machine Learning and Cosine Similarity? Ask about slides
-Difference in measurement start of day and end of day, compare that number with snowfall two weeks out
-Average measurement compared with snowfall two weeks out 
+
 How quickly the buoy pops is going to matter
 Check difference from last 12 hours and/or Height > 7?
   Use biggest difference from day to compare with daily snow totals
@@ -398,7 +397,7 @@ ggplot() +
   ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
 
 # pruned by CV
-prune_initialPC <- prune.tree(initial_treePC, best = 5)
+prune_initialPC <- prune.tree(initial_treePC, best = 6)
 plot(prune_initialPC)
 text(prune_initialPC, cex = 0.65, digits = 4, pretty = 0)
 title("Park City")
@@ -424,7 +423,7 @@ ggplot() +
   ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
 
 # pruned by CV
-prune_initialJH <- prune.tree(initial_treeJH, best = 5)
+prune_initialJH <- prune.tree(initial_treeJH, best = 6)
 plot(prune_initialJH)
 text(prune_initialJH, cex = 0.65, digits = 4, pretty = 0)
 title("Jackson Hole")
@@ -439,8 +438,6 @@ bag_fitPC <- randomForest(AvgSnowfall3DayWindow ~ ., data = trainingPC, mtry = n
 bag_predictPC = predict(bag_fitPC, testingPC, type = "response")
 bag_MSEPC = round(mean((testingPC$AvgSnowfall3DayWindow - bag_predictPC)^2), 4)
 print(paste("Test MSE of Bagging: ", bag_MSEPC))
-
-plot(bag_fitPC)
 
 data.frame(bag_fitPC$importance) %>%
   mutate(variable = rownames(bag_fitPC$importance)) %>%
@@ -463,8 +460,6 @@ bag_fitJH <- randomForest(AvgSnowfall3DayWindow ~ ., data = trainingJH, mtry = n
 bag_predictJH = predict(bag_fitJH, testingJH, type = "response")
 bag_MSEJH = round(mean((testingJH$AvgSnowfall3DayWindow - bag_predictJH)^2), 4)
 print(paste("Test MSE of Bagging: ", bag_MSEJH))
-
-plot(bag_fitJH)
 
 data.frame(bag_fitJH$importance) %>%
   mutate(variable = rownames(bag_fitJH$importance)) %>%

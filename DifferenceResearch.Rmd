@@ -8,7 +8,6 @@ output: html_document
 
 Machine Learning and Cosine Similarity? Ask about slides
 
-How quickly the buoy pops is going to matter
 Check difference from last 12 hours and/or Height > 7?
   Use biggest difference from day to compare with daily snow totals
   Does a negative number correlate to storm ending? 
@@ -275,8 +274,6 @@ bag_predict = predict(bag_fit, testing, type = "response")
 bag_MSE = round(mean((testing$AvgSnowfall3DayWindow - bag_predict)^2), 4)
 print(paste("Test MSE of Bagging: ", bag_MSE))
 
-plot(bag_fit)
-
 data.frame(bag_fit$importance) %>%
   mutate(variable = rownames(bag_fit$importance)) %>%
   mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
@@ -328,6 +325,14 @@ originalBuoys %>%
   # ggplot(aes(x = Day, y = WaveHeightDiff12Hours)) +
   #   geom_point() +
   #   facet_wrap(~Month + Year)
+
+
+ggplot(data = originalBuoys) +
+  geom_violin(aes(x = Month, y = WaveHeight, group = Month))
+
+ggplot(data = originalBuoys) +
+  geom_boxplot(aes(x= Month, y = AvgSnowfall3DayWindow, group = Month))
+  
 
 ```
 
