@@ -12,6 +12,7 @@ Check difference from last 12 hours and/or Height > 7?
   Use biggest difference from day to compare with daily snow totals
   Does a negative number correlate to storm ending? 
   
+Classification
   
 ```{r setup, include=FALSE, echo = FALSE}
 set.seed(445)
@@ -327,8 +328,9 @@ originalBuoys %>%
   #   facet_wrap(~Month + Year)
 
 
-ggplot(data = originalBuoys) +
-  geom_violin(aes(x = Month, y = WaveHeight, group = Month))
+ggplot(data = originalBuoys) + 
+  geom_jitter(aes(x = Month, y = AvgSnowfall3DayWindow, alpha = 0.05, fill = NA, colour = "#00abff")) +
+  geom_violin(aes(x = Month, y = WaveHeight, group = Month)) 
 
 ggplot(data = originalBuoys) +
   geom_boxplot(aes(x= Month, y = AvgSnowfall3DayWindow, group = Month))
