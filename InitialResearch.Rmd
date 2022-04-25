@@ -1,12 +1,9 @@
 ---
 title: "InitialResearch"
-author: "Trevor Isaacson"
+author: "Trevor Isaacson and Evan Kessler"
 date: "3/27/2022"
 output: html_document
 ---
-
-
-Machine Learning and Cosine Similarity? Ask about slides
 
 How quickly the buoy pops is going to matter
 Check difference from last 12 hours and/or Height > 7?
@@ -113,6 +110,7 @@ AverageDailyData2020 = originalBuoy2020 %>%
 PC2019 = read.csv("./snowfallData/ParkCitySnowfall2019.csv")
 PC2020 = read.csv("./snowfallData/ParkCitySnowfall2020.csv")
 PC2021 = read.csv("./snowfallData/ParkCitySnowfall2021.csv")
+PC2019
 ```
 
 ```{r warning = FALSE}
@@ -337,26 +335,23 @@ totalDailyJH
 
 
 ```{r}
-# totalDaily = rbind(totalDailyPC, totalDailyJH)
-# 
 totalDailyPC = totalDailyPC %>%
   filter(Month < 5 | Month < 9) %>%
-  select(-c(Year, Month, Day, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater))
+  select(-c(Year, Month, Day, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater)) 
 
 totalDailyJH = totalDailyJH %>%
   filter(Month < 5 | Month < 9) %>%
   select(-c(Year, Month, Day, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater))
 
 totalDailyJH
-
   
 trn1 = sample(seq_len(nrow(totalDailyJH)), 350)
 trainingJH = totalDailyJH[trn1, ]
 testingJH = totalDailyJH[-trn1, ]
 
 trn2 = sample(seq_len(nrow(totalDailyPC)), 350)
-trainingPC = totalDailyPC[trn1, ]
-testingPC = totalDailyPC[-trn1, ]
+trainingPC = totalDailyPC[trn2, ]
+testingPC = totalDailyPC[-trn2, ]
 ```
 
 
@@ -397,7 +392,7 @@ ggplot() +
   ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
 
 # pruned by CV
-prune_initialPC <- prune.tree(initial_treePC, best = 6)
+prune_initialPC <- prune.tree(initial_treePC, best = 5)
 plot(prune_initialPC)
 text(prune_initialPC, cex = 0.65, digits = 4, pretty = 0)
 title("Park City")
@@ -423,7 +418,7 @@ ggplot() +
   ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
 
 # pruned by CV
-prune_initialJH <- prune.tree(initial_treeJH, best = 6)
+prune_initialJH <- prune.tree(initial_treeJH, best = 7)
 plot(prune_initialJH)
 text(prune_initialJH, cex = 0.65, digits = 4, pretty = 0)
 title("Jackson Hole")
@@ -479,9 +474,117 @@ location = c("Park City", "Jackson Hole", "Park City", "Jackson Hole", "Park Cit
 MSEnumbers = c(MSE_testingPC, MSE_testingJH, treePC_MSE, treeJH_MSE, bag_MSEPC, bag_MSEJH)
 
 
-finalMSE = data.frame(Methods = method, Location = location, MSE_Inches = MSEnumbers)
+finalMSE = data.frame(Methods = method, Location = location, RMSE_Inches = sqrt(MSEnumbers))
 finalMSE
 ```
+
+CLASSIFICATION
+```{r}
+totalDailyPC = totalDailyPC %>%
+  mutate(AvgSnowfall3DayBinary = ifelse(AvgSnowfall3DayWindow > 0.0, 1, 0))  %>%
+  select(-c(AvgSnowfall3DayWindow)) %>%
+  mutate(AvgSnowfall3DayBinary = as.factor(AvgSnowfall3DayBinary))
+totalDailyJH = totalDailyJH %>%
+  mutate(AvgSnowfall3DayBinary = ifelse(AvgSnowfall3DayWindow > 0.0, 1, 0))  %>%
+  select(-c(AvgSnowfall3DayWindow))  %>%
+  mutate(AvgSnowfall3DayBinary = as.factor(AvgSnowfall3DayBinary))
+
+trn1 = sample(seq_len(nrow(totalDailyJH)), 350)
+trainingJH = totalDailyJH[trn1, ]
+testingJH = totalDailyJH[-trn1, ]
+
+trn2 = sample(seq_len(nrow(totalDailyPC)), 350)
+trainingPC = totalDailyPC[trn2, ]
+testingPC = totalDailyPC[-trn2, ]
+
+totalDailyJH
+```
+
+Start with Logistic Regression:
+```{r}
+logisticPC = glm(AvgSnowfall3DayBinary ~ . , data = trainingPC, family = "binomial")
+summary(logisticPC)
+logisticJH = glm(AvgSnowfall3DayBinary ~ . , data = trainingJH, family = "binomial")
+summary(logisticJH)
+
+logisticPredictPC = predict(logisticPC, newdata = testingPC, type = "response")
+logisticPredPC = rep(0, length(logisticPredictPC))
+logisticPredPC[logisticPredPC > 0.5] = 1
+logisticRMSE_PC = round(sqrt(mean(logisticPredPC != trainingPC$AvgSnowfall3DayBinary)), 4)
+print(paste("Logistic Regression RMSE: ", logisticRMSE_PC))
+
+logisticPredictJH = predict(logisticJH, newdata = testingJH, type = "response")
+logisticPredJH = rep(0, length(logisticPredictJH))
+logisticPredJH[logisticPredJH > 0.5] = 1
+logisticRMSE_JH = round(sqrt(mean(logisticPredJH != trainingJH$AvgSnowfall3DayBinary)), 4)
+print(paste("Logistic Regression RMSE: ", logisticRMSE_JH))
+```
+
+Decision Trees w/ Classification Jackson Hole
+```{r}
+class_treeJH = tree(AvgSnowfall3DayBinary ~ ., data = trainingJH)
+summary(class_treeJH)
+plot(class_treeJH)
+text(class_treeJH, cex = 0.65, digits = 4, pretty = 0)
+class_treeJH
+
+class_tree_predictJH = predict(class_treeJH, newdata = testingJH, type = "class")
+table(class_tree_predictJH, testingJH$AvgSnowfall3DayBinary)
+print(paste("Test Error Rate of Class Tree: ", (39/(39+19+77))))
+
+# cross validation
+class_treeJH_cv = cv.tree(class_treeJH)
+ggplot() +
+  geom_point(aes(x = class_treeJH_cv$size, y = class_treeJH_cv$dev)) + 
+  geom_line(aes(x = class_treeJH_cv$size, y = class_treeJH_cv$dev)) + 
+  ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
+
+# pruned by CV
+prune_classJH <- prune.tree(class_treeJH, best = 2)
+plot(prune_classJH)
+text(prune_classJH, cex = 0.65, digits = 4, pretty = 0)
+title("Jackson Hole Classification")
+```
+
+Decision Trees w/ Classification with Park City
+```{r}
+class_treePC = tree(AvgSnowfall3DayBinary ~ ., data = trainingPC)
+summary(class_treePC)
+plot(class_treePC)
+text(class_treePC, cex = 0.65, digits = 4, pretty = 0)
+class_treePC
+
+class_tree_predictPC = predict(class_treePC, newdata = testingPC, type = "class")
+table(class_tree_predictPC, testingPC$AvgSnowfall3DayBinary)
+print(paste("Test Error Rate of Class Tree: ", (28/(28+12+95))))
+
+# cross validation
+class_treePC_cv = cv.tree(class_treePC)
+ggplot() +
+  geom_point(aes(x = class_treePC_cv$size, y = class_treePC_cv$dev)) + 
+  geom_line(aes(x = class_treePC_cv$size, y = class_treePC_cv$dev)) + 
+  ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
+
+# pruned by CV
+prune_classPC <- prune.tree(class_treePC, best = 4)
+plot(prune_classPC)
+text(prune_classPC, cex = 0.65, digits = 4, pretty = 0)
+title("Park City Classification")
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
