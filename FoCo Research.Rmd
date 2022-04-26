@@ -110,22 +110,145 @@ cape2019 = cape2019 %>%
   select(-c(Visibility, Tide))
 ```
 
+```{r}
+# average data on daily basis
+tillamook2019 = tillamook2019 %>%
+  group_by(Year, Month, Day) %>%
+  summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
+  
+westCali2019 = westCali2019 %>%
+  group_by(Year, Month, Day) %>%
+  summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
+
+cape2019 = cape2019 %>%
+  group_by(Year, Month, Day) %>%
+  summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
+
+tillamook2019
+westCali2019
+cape2019
+```
+
+
+
+Fort Collins Snow Totals 
 ```{r warning = FALSE}
 FC2019 = read.csv("./snowfallData/FoCoSnowfall2019.csv")
-FC2019
-
-
+FC2020 = read.csv("./snowfallData/FoCoSnowfall2020.csv")
 
 # change M, T and - to 0
 FC2019 = FC2019 %>%
   mutate_if(is.factor, as.character) %>%
   mutate_if(is.character, as.numeric)
 FC2019[is.na(FC2019)] <- 0
-FC2019
+
+FC2020 = FC2020 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+FC2020[is.na(FC2020)] <- 0
+
+FoCoSnowTotals2019 = stack(FC2019[2:ncol(FC2019)])
+FoCoSnowTotals2019 = FoCoSnowTotals2019[-c(60,61,62,124,168,186,249,341), ]
+
+# advanced snowfall = oregon/california snow 5-7 days in advance
+# remove first 7 days of year
+advanceSnowTotals5Days = FoCoSnowTotals2019[-c(1:5), ]
+advanceSnowTotals6Days = FoCoSnowTotals2019[-c(1:6), ]
+advanceSnowTotals7Days = FoCoSnowTotals2019[-c(1:7), ]
+
+# add first 14 days of next year to end
+SnowTotals5Daysinto2020 = FC2020[1:5, "Jan"]
+SnowTotals6Daysinto2020 = FC2020[1:6, "Jan"]
+SnowTotals7Daysinto2020 = FC2020[1:7, "Jan"]
+
+SnowTotals5Daysinto2020 = data.frame(values = SnowTotals5Daysinto2020, ind = "Jan")
+SnowTotals6Daysinto2020 = data.frame(values = SnowTotals6Daysinto2020, ind = "Jan")
+SnowTotals7Daysinto2020 = data.frame(values = SnowTotals7Daysinto2020, ind = "Jan")
+
+advancedSnowfall5 = rbind(advanceSnowTotals5Days, SnowTotals5Daysinto2020)
+advancedSnowfall6 = rbind(advanceSnowTotals6Days, SnowTotals6Daysinto2020)
+advancedSnowfall7 = rbind(advanceSnowTotals7Days, SnowTotals7Daysinto2020)
+
+# create dataframe of snowfalls 
+newFC2019 = data.frame(Year = westCali2019$Year,
+                             Month = westCali2019$Month,
+                             Day = westCali2019$Day,
+                             Snowfall = FoCoSnowTotals2019$values,
+                             Snowfall5DaysLater = advancedSnowfall5$values,
+                             Snowfall6DaysLater = advancedSnowfall6$values,
+                             Snowfall7DaysLater = advancedSnowfall7$values)
+FC2019 = newFC2019
+```
+
+Breckenridge Snow Totals 
+```{r warning = FALSE}
+B2019 = read.csv("./snowfallData/BreckSnowfall2019.csv")
+B2020 = read.csv("./snowfallData/BreckSnowfall2020.csv")
+
+# change M, T and - to 0
+B2019 = B2019 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+B2019[is.na(B2019)] <- 0
+
+B2020 = B2020 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+B2020[is.na(B2020)] <- 0
+
+BreckSnowTotals2019 = stack(B2019[2:ncol(B2019)])
+BreckSnowTotals2019 = BreckSnowTotals2019[-c(60,61,62,124,168,186,249,341), ]
+
+# advanced snowfall = oregon/california snow 5-7 days in advance
+# remove first 7 days of year
+advanceSnowTotals5Days = BreckSnowTotals2019[-c(1:5), ]
+advanceSnowTotals6Days = BreckSnowTotals2019[-c(1:6), ]
+advanceSnowTotals7Days = BreckSnowTotals2019[-c(1:7), ]
+
+# add first 14 days of next year to end
+SnowTotals5Daysinto2020 = B2020[1:5, "Jan"]
+SnowTotals6Daysinto2020 = B2020[1:6, "Jan"]
+SnowTotals7Daysinto2020 = B2020[1:7, "Jan"]
+
+SnowTotals5Daysinto2020 = data.frame(values = SnowTotals5Daysinto2020, ind = "Jan")
+SnowTotals6Daysinto2020 = data.frame(values = SnowTotals6Daysinto2020, ind = "Jan")
+SnowTotals7Daysinto2020 = data.frame(values = SnowTotals7Daysinto2020, ind = "Jan")
+
+advancedSnowfall5 = rbind(advanceSnowTotals5Days, SnowTotals5Daysinto2020)
+advancedSnowfall6 = rbind(advanceSnowTotals6Days, SnowTotals6Daysinto2020)
+advancedSnowfall7 = rbind(advanceSnowTotals7Days, SnowTotals7Daysinto2020)
+
+# create dataframe of snowfalls 
+newB2019 = data.frame(Year = westCali2019$Year,
+                             Month = westCali2019$Month,
+                             Day = westCali2019$Day,
+                             Snowfall = BreckSnowTotals2019$values,
+                             Snowfall5DaysLater = advancedSnowfall5$values,
+                             Snowfall6DaysLater = advancedSnowfall6$values,
+                             Snowfall7DaysLater = advancedSnowfall7$values)
+B2019 = newB2019
+```
+
+Add Snow Totals to Buoy Data
+```{r}
+# this dataframe has westCali buoy with FoCo snow totals
+westCaliFoCo = westCali2019
+westCaliFoCo["Snowfall"] = FC2019$Snowfall
+# westCaliFoCo["Snowfall5DaysLater"] = FC2019$Snowfall5DaysLater
+# westCaliFoCo["Snowfall6DaysLater"] = FC2019$Snowfall6DaysLater
+# westCaliFoCo["Snowfall7DaysLater"] = FC2019$Snowfall7DaysLater
+westCaliFoCo["AvgSnowfall3DayWindow"] = (FC2019$Snowfall5DaysLater + FC2019$Snowfall6DaysLater + FC2019$Snowfall7DaysLater) /3 
+
+# this dataframe has westCali buoy with Breck snow totals
+westCaliBreck = westCali2019
+westCaliBreck["Snowfall"] = B2019$Snowfall
+westCaliBreck["AvgSnowfall3DayWindow"] = (B2019$Snowfall5DaysLater + B2019$Snowfall6DaysLater + B2019$Snowfall7DaysLater) /3 
+
 ```
 
 
 
+Potential timeframes: oregon and california ~ 4-7, cape ~ 6-9, kodiak ~ 7-10?
 
 
 

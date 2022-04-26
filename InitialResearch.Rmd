@@ -11,7 +11,7 @@ Check difference from last 12 hours and/or Height > 7?
   Does a negative number correlate to storm ending? 
   
 ```{r setup, include=FALSE, echo = FALSE}
-set.seed(445)
+set.seed(478)
 knitr::opts_chunk$set(echo = FALSE)
 # knitr::opts_chunk$set(fig.width=5, fig.height=3) 
 knitr::opts_chunk$set(message = FALSE)
@@ -26,6 +26,8 @@ library(dplyr)
 library(zoo)
 library(tree)
 library(randomForest)
+library(psych)
+library(Metrics)
 ```
 
 ## Original Buoy Data
@@ -110,7 +112,6 @@ AverageDailyData2020 = originalBuoy2020 %>%
 PC2019 = read.csv("./snowfallData/ParkCitySnowfall2019.csv")
 PC2020 = read.csv("./snowfallData/ParkCitySnowfall2020.csv")
 PC2021 = read.csv("./snowfallData/ParkCitySnowfall2021.csv")
-PC2019
 ```
 
 ```{r warning = FALSE}
@@ -129,7 +130,6 @@ PC2021 = PC2021 %>%
   mutate_if(is.factor, as.character) %>%
   mutate_if(is.character, as.numeric)
 PC2021[is.na(PC2021)] <- 0
-
 ```
 
 The Dataframe PC2019 shows snowfall totals for the corresponding day.  
@@ -468,6 +468,92 @@ data.frame(bag_fitJH$importance) %>%
   ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
   geom_point(aes(IncNodePurity, variable))  
 ```
+
+Exploratory Factor Analysis with JacksonHole
+```{r}
+X = totalDailyJH[,1:11]
+n <- length(totalDailyJH$AvgSnowfall3DayWindow)
+trn <- sample(seq_len(n), .75*n)
+JHrmse <- c()
+count = 1;
+
+for(i in c(1,2,3)) {
+  for(j in c("varimax", "none")) {
+    f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
+    p <- principal(r = X, nfactors = i, rotate = j)
+    
+    #MLE
+    data <- cbind(totalDailyJH$AvgSnowfall3DayWindow, f$scores)
+    data = as.data.frame(data)
+    training <- data[trn,]
+    testing <- data[-trn,]
+    model <- lm(V1 ~ ., data = training)
+    summary(model)
+    pred <- predict(model, newdata = testing, type = "response")
+    cbind(testing$V1, pred)
+    JHrmse[count] <- rmse(testing$V1, pred)
+    count = count + 1;
+    
+    #Principal
+    data <- cbind(totalDailyJH$AvgSnowfall3DayWindow, p$scores)
+    data = as.data.frame(data) 
+    training2 <- data[trn,]
+    testing2 <- data[-trn,]
+    model2 <- lm(V1 ~ ., data = training2)
+    summary(model2)
+    pred2 <- predict(model2, newdata = testing2, type = "response")
+    cbind(testing2$V1, pred2)
+    JHrmse[count] <- rmse(testing2$V1, pred2)
+    count = count + 1;
+  }
+}
+
+JHrmse
+```
+
+Exploratory Factor Analysis with ParkCity
+```{r}
+X = totalDailyPC[,1:11]
+n <- length(totalDailyPC$AvgSnowfall3DayWindow)
+trn <- sample(seq_len(n), .75*n)
+PCrmse <- c()
+count = 1;
+
+for(i in c(1,2,3)) {
+  for(j in c("varimax", "none")) {
+    f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
+    p <- principal(r = X, nfactors = i, rotate = j)
+    
+    #MLE
+    data <- cbind(totalDailyPC$AvgSnowfall3DayWindow, f$scores)
+    data = as.data.frame(data)
+    training <- data[trn,]
+    testing <- data[-trn,]
+    model <- lm(V1 ~ ., data = training)
+    summary(model)
+    pred <- predict(model, newdata = testing, type = "response")
+    cbind(testing$V1, pred)
+    PCrmse[count] <- rmse(testing$V1, pred)
+    count = count + 1;
+    
+    #Principal
+    data <- cbind(totalDailyPC$AvgSnowfall3DayWindow, p$scores)
+    data = as.data.frame(data) 
+    training2 <- data[trn,]
+    testing2 <- data[-trn,]
+    model2 <- lm(V1 ~ ., data = training2)
+    summary(model2)
+    pred2 <- predict(model2, newdata = testing2, type = "response")
+    cbind(testing2$V1, pred2)
+    PCrmse[count] <- rmse(testing2$V1, pred2)
+    count = count + 1;
+  }
+}
+
+PCrmse
+```
+
+
 ```{r}
 method = c("Linear Regression", "Linear Regression", "Trees", "Trees", "Bagging", "Bagging")
 location = c("Park City", "Jackson Hole", "Park City", "Jackson Hole", "Park City", "Jackson Hole")
@@ -570,6 +656,55 @@ prune_classPC <- prune.tree(class_treePC, best = 4)
 plot(prune_classPC)
 text(prune_classPC, cex = 0.65, digits = 4, pretty = 0)
 title("Park City Classification")
+```
+
+```{r}
+totalDailyJH
+```
+
+
+
+
+Exploratory Factor Analysis with JacksonHole Classification
+```{r}
+X = totalDailyJH[,1:11]
+n <- length(totalDailyJH$AvgSnowfall3DayBinary)
+trn <- sample(seq_len(n), .75*n)
+JHrmseClassification <- c()
+count = 1;
+
+for(i in c(1,2,3)) {
+  for(j in c("varimax", "none")) {
+    f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
+    p <- principal(r = X, nfactors = i, rotate = j)
+    
+    #MLE
+    data <- cbind(totalDailyJH$AvgSnowfall3DayBinary, f$scores)
+    data = as.data.frame(data)
+    training <- data[trn,]
+    testing <- data[-trn,]
+    model <- lm(V1 ~ ., data = training)
+    summary(model)
+    pred <- predict(model, newdata = testing, type = "response")
+    cbind(testing$V1, pred)
+    JHrmseClassification[count] <- rmse(testing$V1, pred)
+    count = count + 1;
+    
+    #Principal
+    data <- cbind(totalDailyJH$AvgSnowfall3DayBinary, p$scores)
+    data = as.data.frame(data) 
+    training2 <- data[trn,]
+    testing2 <- data[-trn,]
+    model2 <- lm(V1 ~ ., data = training2)
+    summary(model2)
+    pred2 <- predict(model2, newdata = testing2, type = "response")
+    cbind(testing2$V1, pred2)
+    JHrmseClassification[count] <- rmse(testing2$V1, pred2)
+    count = count + 1;
+  }
+}
+
+JHrmseClassification
 ```
 
 
