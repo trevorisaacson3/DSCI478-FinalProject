@@ -115,6 +115,7 @@ cape2019 = cape2019 %>%
 tillamook2019 = tillamook2019 %>%
   group_by(Year, Month, Day) %>%
   summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
+tillamook2019 = tillamook2019[-c(137),]
   
 westCali2019 = westCali2019 %>%
   group_by(Year, Month, Day) %>%
@@ -155,15 +156,15 @@ FoCoSnowTotals2019 = FoCoSnowTotals2019[-c(60,61,62,124,168,186,249,341), ]
 advanceSnowTotals5Days = FoCoSnowTotals2019[-c(1:5), ]
 advanceSnowTotals6Days = FoCoSnowTotals2019[-c(1:6), ]
 advanceSnowTotals7Days = FoCoSnowTotals2019[-c(1:7), ]
-advanceSnowTotals7Days = FoCoSnowTotals2019[-c(1:8), ]
-advanceSnowTotals7Days = FoCoSnowTotals2019[-c(1:9), ]
+advanceSnowTotals8Days = FoCoSnowTotals2019[-c(1:8), ]
+advanceSnowTotals9Days = FoCoSnowTotals2019[-c(1:9), ]
 
 # add first 14 days of next year to end
 SnowTotals5Daysinto2020 = FC2020[1:5, "Jan"]
 SnowTotals6Daysinto2020 = FC2020[1:6, "Jan"]
 SnowTotals7Daysinto2020 = FC2020[1:7, "Jan"]
-SnowTotals7Daysinto2020 = FC2020[1:8, "Jan"]
-SnowTotals7Daysinto2020 = FC2020[1:9, "Jan"]
+SnowTotals8Daysinto2020 = FC2020[1:8, "Jan"]
+SnowTotals9Daysinto2020 = FC2020[1:9, "Jan"]
 
 SnowTotals5Daysinto2020 = data.frame(values = SnowTotals5Daysinto2020, ind = "Jan")
 SnowTotals6Daysinto2020 = data.frame(values = SnowTotals6Daysinto2020, ind = "Jan")
@@ -188,6 +189,7 @@ newFC2019 = data.frame(Year = westCali2019$Year,
                              Snowfall8DaysLater = advancedSnowfall8$values,
                              Snowfall9DaysLater = advancedSnowfall9$values)
 FC2019 = newFC2019
+FC2019
 ```
 
 Breckenridge Snow Totals 
@@ -252,6 +254,16 @@ B2019 = newB2019
 
 Add Snow Totals to Buoy Data for buoys with time distances of about 4 - 7 days
 ```{r}
+tillamook2019 = tillamook2019 %>%
+  ungroup() %>%
+  select(-c(Day, Month, Year))
+westCali2019 = westCali2019 %>%
+  ungroup() %>%
+  select(-c(Day, Month, Year))
+cape2019 = cape2019 %>%
+  ungroup() %>%
+  select(-c(Day, Month, Year))
+
 # this dataframe has westCali buoy with FoCo snow totals
 westCaliFoCo = westCali2019
 westCaliFoCo["Snowfall"] = FC2019$Snowfall
@@ -285,8 +297,90 @@ capeBreck["Snowfall"] = B2019$Snowfall
 capeBreck["AvgSnowfall3DayWindow"] = (B2019$Snowfall6DaysLater + B2019$Snowfall7DaysLater + B2019$Snowfall8DaysLater) /3 
 ```
 
+Create Binary Snow Totals based on Day Range
+```{r}
+westCaliBreck = westCaliBreck %>%
+  mutate(AvgSnowfall3DayBinary = ifelse(AvgSnowfall3DayWindow > 0.0, 1, 0))  %>%
+  mutate(AvgSnowfall3DayBinary = as.factor(AvgSnowfall3DayBinary))
+
+westCaliFoCo = westCaliFoCo %>%
+  mutate(AvgSnowfall3DayBinary = ifelse(AvgSnowfall3DayWindow > 0.0, 1, 0))  %>%
+  mutate(AvgSnowfall3DayBinary = as.factor(AvgSnowfall3DayBinary))
+
+capeBreck = capeBreck %>%
+  mutate(AvgSnowfall3DayBinary = ifelse(AvgSnowfall3DayWindow > 0.0, 1, 0))  %>%
+  mutate(AvgSnowfall3DayBinary = as.factor(AvgSnowfall3DayBinary))
+
+capeFoCo = capeFoCo %>%
+  mutate(AvgSnowfall3DayBinary = ifelse(AvgSnowfall3DayWindow > 0.0, 1, 0))  %>%
+  mutate(AvgSnowfall3DayBinary = as.factor(AvgSnowfall3DayBinary))
+
+tillamookBreck = tillamookBreck %>%
+  mutate(AvgSnowfall3DayBinary = ifelse(AvgSnowfall3DayWindow > 0.0, 1, 0))  %>%
+  mutate(AvgSnowfall3DayBinary = as.factor(AvgSnowfall3DayBinary))
+
+tillamookFoCo = tillamookFoCo %>%
+  mutate(AvgSnowfall3DayBinary = ifelse(AvgSnowfall3DayWindow > 0.0, 1, 0))  %>%
+  mutate(AvgSnowfall3DayBinary = as.factor(AvgSnowfall3DayBinary))
+```
+
+Exploratory Factor Analysis 
+```{r}
+factorAnalysis = function(df){
+  X = df[,1:11]
+  n <- length(df$AvgSnowfall3DayBinary)
+  trn <- sample(seq_len(n), .75*n)
+  count = 1;
+  rmseVals <- c()
+  for(i in c(1,2,3)) {
+    for(j in c("varimax", "none")) {
+      f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
+      p <- principal(r = X, nfactors = i, rotate = j)
+      
+      #MLE
+      data <- cbind(df$AvgSnowfall3DayBinary, f$scores)
+      data = as.data.frame(data)
+      training <- data[trn,]
+      testing <- data[-trn,]
+      model <- lm(V1 ~ ., data = training)
+      summary(model)
+      pred <- predict(model, newdata = testing, type = "response")
+      cbind(testing$V1, pred)
+      rmseVals[count] <- rmse(testing$V1, pred)
+      count = count + 1;
+      
+      #Principal
+      data <- cbind(df$AvgSnowfall3DayBinary, p$scores)
+      data = as.data.frame(data) 
+      training2 <- data[trn,]
+      testing2 <- data[-trn,]
+      model2 <- lm(V1 ~ ., data = training2)
+      summary(model2)
+      pred2 <- predict(model2, newdata = testing2, type = "response")
+      cbind(testing2$V1, pred2)
+      rmseVals[count] <- rmse(testing2$V1, pred2)
+      count = count + 1;
+    }
+  }
+  print(rmseVals)
+}
+
+```
+
+The names are location of buoy and the snowfall totals for that location
+```{r}
+factorAnalysis(westCaliBreck)
+factorAnalysis(westCaliFoCo)
+factorAnalysis(capeBreck)
+factorAnalysis(capeFoCo)
+factorAnalysis(tillamookBreck)
+# factorAnalysis(tillamookFoCo)
+```
 
 
+```{r}
+tillamookFoCo
+```
 
 
 

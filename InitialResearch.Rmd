@@ -86,9 +86,6 @@ originalBuoy2020 = originalBuoy2020 %>%
   mutate(Month = as.numeric(as.character(Month))) %>%
   mutate(Year = as.numeric(as.character(Year))) %>%
   filter(WaveHeight != 99.00)
-
-originalBuoy2019
-# originalBuoy2020
 ```
 
 
@@ -221,8 +218,6 @@ totalDailyPC = rbind(AverageDailyData2019, AverageDailyData2020)
 
 totalDailyPC = totalDailyPC %>%
   ungroup()
-
-totalDailyPC
 ```
 
 ## Jackson Hole Snowfall Data
@@ -328,9 +323,6 @@ totalDailyJH = rbind(AverageDailyData2019, AverageDailyData2020)
 
 totalDailyJH  = totalDailyJH  %>%
   ungroup()
-
-totalDailyJH
-
 ```
 
 
@@ -469,88 +461,51 @@ data.frame(bag_fitJH$importance) %>%
   geom_point(aes(IncNodePurity, variable))  
 ```
 
-Exploratory Factor Analysis with JacksonHole
+Exploratory Factor Analysis Function For Actual Prediction
 ```{r}
-X = totalDailyJH[,1:11]
-n <- length(totalDailyJH$AvgSnowfall3DayWindow)
-trn <- sample(seq_len(n), .75*n)
-JHrmse <- c()
-count = 1;
-
-for(i in c(1,2,3)) {
-  for(j in c("varimax", "none")) {
-    f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
-    p <- principal(r = X, nfactors = i, rotate = j)
-    
-    #MLE
-    data <- cbind(totalDailyJH$AvgSnowfall3DayWindow, f$scores)
-    data = as.data.frame(data)
-    training <- data[trn,]
-    testing <- data[-trn,]
-    model <- lm(V1 ~ ., data = training)
-    summary(model)
-    pred <- predict(model, newdata = testing, type = "response")
-    cbind(testing$V1, pred)
-    JHrmse[count] <- rmse(testing$V1, pred)
-    count = count + 1;
-    
-    #Principal
-    data <- cbind(totalDailyJH$AvgSnowfall3DayWindow, p$scores)
-    data = as.data.frame(data) 
-    training2 <- data[trn,]
-    testing2 <- data[-trn,]
-    model2 <- lm(V1 ~ ., data = training2)
-    summary(model2)
-    pred2 <- predict(model2, newdata = testing2, type = "response")
-    cbind(testing2$V1, pred2)
-    JHrmse[count] <- rmse(testing2$V1, pred2)
-    count = count + 1;
+factorAnalysis = function(df){
+  X = df[,1:11]
+  n <- length(df$AvgSnowfall3DayWindow)
+  trn <- sample(seq_len(n), .75*n)
+  count = 1;
+  rmseVals <- c()
+  for(i in c(1,2,3)) {
+    for(j in c("varimax", "none")) {
+      f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
+      p <- principal(r = X, nfactors = i, rotate = j)
+      
+      #MLE
+      data <- cbind(df$AvgSnowfall3DayWindow, f$scores)
+      data = as.data.frame(data)
+      training <- data[trn,]
+      testing <- data[-trn,]
+      model <- lm(V1 ~ ., data = training)
+      summary(model)
+      pred <- predict(model, newdata = testing, type = "response")
+      cbind(testing$V1, pred)
+      rmseVals[count] <- rmse(testing$V1, pred)
+      count = count + 1;
+      
+      #Principal
+      data <- cbind(df$AvgSnowfall3DayWindow, p$scores)
+      data = as.data.frame(data) 
+      training2 <- data[trn,]
+      testing2 <- data[-trn,]
+      model2 <- lm(V1 ~ ., data = training2)
+      summary(model2)
+      pred2 <- predict(model2, newdata = testing2, type = "response")
+      cbind(testing2$V1, pred2)
+      rmseVals[count] <- rmse(testing2$V1, pred2)
+      count = count + 1;
+    }
   }
+  print(rmseVals)
 }
-
-JHrmse
 ```
 
-Exploratory Factor Analysis with ParkCity
-```{r}
-X = totalDailyPC[,1:11]
-n <- length(totalDailyPC$AvgSnowfall3DayWindow)
-trn <- sample(seq_len(n), .75*n)
-PCrmse <- c()
-count = 1;
-
-for(i in c(1,2,3)) {
-  for(j in c("varimax", "none")) {
-    f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
-    p <- principal(r = X, nfactors = i, rotate = j)
-    
-    #MLE
-    data <- cbind(totalDailyPC$AvgSnowfall3DayWindow, f$scores)
-    data = as.data.frame(data)
-    training <- data[trn,]
-    testing <- data[-trn,]
-    model <- lm(V1 ~ ., data = training)
-    summary(model)
-    pred <- predict(model, newdata = testing, type = "response")
-    cbind(testing$V1, pred)
-    PCrmse[count] <- rmse(testing$V1, pred)
-    count = count + 1;
-    
-    #Principal
-    data <- cbind(totalDailyPC$AvgSnowfall3DayWindow, p$scores)
-    data = as.data.frame(data) 
-    training2 <- data[trn,]
-    testing2 <- data[-trn,]
-    model2 <- lm(V1 ~ ., data = training2)
-    summary(model2)
-    pred2 <- predict(model2, newdata = testing2, type = "response")
-    cbind(testing2$V1, pred2)
-    PCrmse[count] <- rmse(testing2$V1, pred2)
-    count = count + 1;
-  }
-}
-
-PCrmse
+```{r  warning = FALSE}
+factorAnalysis(totalDailyJH)
+factorAnalysis(totalDailyPC)
 ```
 
 
@@ -559,12 +514,11 @@ method = c("Linear Regression", "Linear Regression", "Trees", "Trees", "Bagging"
 location = c("Park City", "Jackson Hole", "Park City", "Jackson Hole", "Park City", "Jackson Hole")
 MSEnumbers = c(MSE_testingPC, MSE_testingJH, treePC_MSE, treeJH_MSE, bag_MSEPC, bag_MSEJH)
 
-
 finalMSE = data.frame(Methods = method, Location = location, RMSE_Inches = sqrt(MSEnumbers))
 finalMSE
 ```
 
-CLASSIFICATION
+## CLASSIFICATION
 ```{r}
 totalDailyPC = totalDailyPC %>%
   mutate(AvgSnowfall3DayBinary = ifelse(AvgSnowfall3DayWindow > 0.0, 1, 0))  %>%
@@ -582,8 +536,6 @@ testingJH = totalDailyJH[-trn1, ]
 trn2 = sample(seq_len(nrow(totalDailyPC)), 350)
 trainingPC = totalDailyPC[trn2, ]
 testingPC = totalDailyPC[-trn2, ]
-
-totalDailyJH
 ```
 
 Start with Logistic Regression:
@@ -658,88 +610,52 @@ text(prune_classPC, cex = 0.65, digits = 4, pretty = 0)
 title("Park City Classification")
 ```
 
-Exploratory Factor Analysis with JacksonHole Classification
+Exploratory Factor Analysis Function For Binary Predictions
 ```{r}
-X = totalDailyJH[,1:11]
-n <- length(totalDailyJH$AvgSnowfall3DayBinary)
-trn <- sample(seq_len(n), .75*n)
-JHrmseClassification <- c()
-count = 1;
-
-for(i in c(1,2,3)) {
-  for(j in c("varimax", "none")) {
-    f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
-    p <- principal(r = X, nfactors = i, rotate = j)
-    
-    #MLE
-    data <- cbind(totalDailyJH$AvgSnowfall3DayBinary, f$scores)
-    data = as.data.frame(data)
-    training <- data[trn,]
-    testing <- data[-trn,]
-    model <- lm(V1 ~ ., data = training)
-    summary(model)
-    pred <- predict(model, newdata = testing, type = "response")
-    cbind(testing$V1, pred)
-    JHrmseClassification[count] <- rmse(testing$V1, pred)
-    count = count + 1;
-    
-    #Principal
-    data <- cbind(totalDailyJH$AvgSnowfall3DayBinary, p$scores)
-    data = as.data.frame(data) 
-    training2 <- data[trn,]
-    testing2 <- data[-trn,]
-    model2 <- lm(V1 ~ ., data = training2)
-    summary(model2)
-    pred2 <- predict(model2, newdata = testing2, type = "response")
-    cbind(testing2$V1, pred2)
-    JHrmseClassification[count] <- rmse(testing2$V1, pred2)
-    count = count + 1;
+factorAnalysis = function(df){
+  X = df[,1:11]
+  n <- length(df$AvgSnowfall3DayBinary)
+  trn <- sample(seq_len(n), .75*n)
+  count = 1;
+  rmseVals <- c()
+  for(i in c(1,2,3)) {
+    for(j in c("varimax", "none")) {
+      f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
+      p <- principal(r = X, nfactors = i, rotate = j)
+      
+      #MLE
+      data <- cbind(df$AvgSnowfall3DayBinary, f$scores)
+      data = as.data.frame(data)
+      training <- data[trn,]
+      testing <- data[-trn,]
+      model <- lm(V1 ~ ., data = training)
+      summary(model)
+      pred <- predict(model, newdata = testing, type = "response")
+      cbind(testing$V1, pred)
+      rmseVals[count] <- rmse(testing$V1, pred)
+      count = count + 1;
+      
+      #Principal
+      data <- cbind(df$AvgSnowfall3DayBinary, p$scores)
+      data = as.data.frame(data) 
+      training2 <- data[trn,]
+      testing2 <- data[-trn,]
+      model2 <- lm(V1 ~ ., data = training2)
+      summary(model2)
+      pred2 <- predict(model2, newdata = testing2, type = "response")
+      cbind(testing2$V1, pred2)
+      rmseVals[count] <- rmse(testing2$V1, pred2)
+      count = count + 1;
+    }
   }
+  print(rmseVals)
 }
-
-JHrmseClassification
 ```
 
-Exploratory Factor Analysis with ParkCity Classification
+
 ```{r}
-X = totalDailyPC[,1:11]
-n <- length(totalDailyPC$AvgSnowfall3DayBinary)
-trn <- sample(seq_len(n), .75*n)
-PCrmseClassification <- c()
-count = 1;
-
-for(i in c(1,2,3)) {
-  for(j in c("varimax", "none")) {
-    f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
-    p <- principal(r = X, nfactors = i, rotate = j)
-    
-    #MLE
-    data <- cbind(totalDailyPC$AvgSnowfall3DayBinary, f$scores)
-    data = as.data.frame(data)
-    training <- data[trn,]
-    testing <- data[-trn,]
-    model <- lm(V1 ~ ., data = training)
-    summary(model)
-    pred <- predict(model, newdata = testing, type = "response")
-    cbind(testing$V1, pred)
-    PCrmseClassification[count] <- rmse(testing$V1, pred)
-    count = count + 1;
-    
-    #Principal
-    data <- cbind(totalDailyPC$AvgSnowfall3DayBinary, p$scores)
-    data = as.data.frame(data) 
-    training2 <- data[trn,]
-    testing2 <- data[-trn,]
-    model2 <- lm(V1 ~ ., data = training2)
-    summary(model2)
-    pred2 <- predict(model2, newdata = testing2, type = "response")
-    cbind(testing2$V1, pred2)
-    PCrmseClassification[count] <- rmse(testing2$V1, pred2)
-    count = count + 1;
-  }
-}
-
-PCrmseClassification
+factorAnalysis(totalDailyJH)
+factorAnalysis(totalDailyPC)
 ```
 
 
