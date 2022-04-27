@@ -658,13 +658,6 @@ text(prune_classPC, cex = 0.65, digits = 4, pretty = 0)
 title("Park City Classification")
 ```
 
-```{r}
-totalDailyJH
-```
-
-
-
-
 Exploratory Factor Analysis with JacksonHole Classification
 ```{r}
 X = totalDailyJH[,1:11]
@@ -707,7 +700,47 @@ for(i in c(1,2,3)) {
 JHrmseClassification
 ```
 
+Exploratory Factor Analysis with ParkCity Classification
+```{r}
+X = totalDailyPC[,1:11]
+n <- length(totalDailyPC$AvgSnowfall3DayBinary)
+trn <- sample(seq_len(n), .75*n)
+PCrmseClassification <- c()
+count = 1;
 
+for(i in c(1,2,3)) {
+  for(j in c("varimax", "none")) {
+    f <- fa(r = X, nfactors = i, rotate = j, fm = "mle")
+    p <- principal(r = X, nfactors = i, rotate = j)
+    
+    #MLE
+    data <- cbind(totalDailyPC$AvgSnowfall3DayBinary, f$scores)
+    data = as.data.frame(data)
+    training <- data[trn,]
+    testing <- data[-trn,]
+    model <- lm(V1 ~ ., data = training)
+    summary(model)
+    pred <- predict(model, newdata = testing, type = "response")
+    cbind(testing$V1, pred)
+    PCrmseClassification[count] <- rmse(testing$V1, pred)
+    count = count + 1;
+    
+    #Principal
+    data <- cbind(totalDailyPC$AvgSnowfall3DayBinary, p$scores)
+    data = as.data.frame(data) 
+    training2 <- data[trn,]
+    testing2 <- data[-trn,]
+    model2 <- lm(V1 ~ ., data = training2)
+    summary(model2)
+    pred2 <- predict(model2, newdata = testing2, type = "response")
+    cbind(testing2$V1, pred2)
+    PCrmseClassification[count] <- rmse(testing2$V1, pred2)
+    count = count + 1;
+  }
+}
+
+PCrmseClassification
+```
 
 
 
