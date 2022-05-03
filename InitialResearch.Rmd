@@ -416,8 +416,6 @@ text(prune_initialJH, cex = 0.65, digits = 4, pretty = 0)
 title("Jackson Hole")
 ```
 
-
-
 Bagging for Park City: 
 ```{r}
 bag_fitPC <- randomForest(AvgSnowfall3DayWindow ~ ., data = trainingPC, mtry = ncol(trainingPC) - 1, importance = TRUE)
@@ -438,7 +436,6 @@ data.frame(bag_fitPC$importance) %>%
   ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
   geom_point(aes(IncNodePurity, variable))  
 ```
-
 
 Bagging for Jackson Hole: 
 ```{r}
@@ -513,6 +510,7 @@ factorAnalysis(totalDailyPC)
 method = c("Linear Regression", "Linear Regression", "Trees", "Trees", "Bagging", "Bagging")
 location = c("Park City", "Jackson Hole", "Park City", "Jackson Hole", "Park City", "Jackson Hole")
 MSEnumbers = c(MSE_testingPC, MSE_testingJH, treePC_MSE, treeJH_MSE, bag_MSEPC, bag_MSEJH)
+
 
 finalMSE = data.frame(Methods = method, Location = location, RMSE_Inches = sqrt(MSEnumbers))
 finalMSE
@@ -608,6 +606,25 @@ prune_classPC <- prune.tree(class_treePC, best = 4)
 plot(prune_classPC)
 text(prune_classPC, cex = 0.65, digits = 4, pretty = 0)
 title("Park City Classification")
+```
+
+Bagging for Park City: 
+```{r}
+bag_fitPC <- randomForest(AvgSnowfall3DayBinary ~ ., data = trainingPC, mtry = ncol(trainingPC) - 1, importance = TRUE)
+
+bag_predictPC = predict(bag_fitPC, testingPC, type = "response")
+table(bag_predictPC, testingPC$AvgSnowfall3DayBinary)
+print(paste("Test Error Rate of Class RF: ",1-((106+14)/(8+7+106+14))))
+```
+
+
+Bagging for Jackson Hole: 
+```{r}
+bag_fitJH <- randomForest(AvgSnowfall3DayBinary ~ ., data = trainingJH, mtry = ncol(trainingJH) - 1, importance = TRUE)
+
+bag_predictJH = predict(bag_fitJH, testingJH, type = "response")
+table(bag_predictJH, testingJH$AvgSnowfall3DayBinary)
+print(paste("Test Error Rate of Class RF: ",1-((82+23)/(82+23+13+17))))
 ```
 
 Exploratory Factor Analysis Function For Binary Predictions
