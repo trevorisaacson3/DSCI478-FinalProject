@@ -1,0 +1,302 @@
+---
+title: "DifferenceResearch"
+author: "Trevor Isaacson"
+date: "3/31/2022"
+output: html_document
+---
+
+
+Machine Learning and Cosine Similarity? Ask about slides
+
+Check difference from last 12 hours and/or Height > 7?
+  Use biggest difference from day to compare with daily snow totals
+  Does a negative number correlate to storm ending? 
+  
+Classification
+  
+```{r setup, include=FALSE, echo = FALSE}
+set.seed(445)
+knitr::opts_chunk$set(echo = FALSE)
+# knitr::opts_chunk$set(fig.width=5, fig.height=3) 
+knitr::opts_chunk$set(message = FALSE)
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library(e1071)
+library(rmarkdown)
+library(glmnet)
+library(knitr)
+library(dplyr)
+library(zoo)
+library(tree)
+library(randomForest)
+```
+
+## Original Buoy Data
+```{r}
+originalBuoy2019 = read.delim("./buoyData/originalBuoy2019.txt", header = FALSE, sep = "")
+colnames(originalBuoy2019) = c("Year", "Month", "Day", "Hour", "Minute", "WindDir", "WindSpeed", "GustSpeed", "WaveHeight", "DominantWavePeriod", "AverageWavePeriod", "DirWavePeriod", "SeaLevelPressure", "AirTemp", "SeaSurfaceTemp", "DewpointTemp", "Visibility", "Tide")
+originalBuoy2019 = originalBuoy2019[-c(1),]
+originalBuoy2020 = read.delim("./buoyData/originalBuoy2020.txt", header = FALSE, sep = "")
+colnames(originalBuoy2020) = c("Year", "Month", "Day", "Hour", "Minute", "WindDir", "WindSpeed", "GustSpeed", "WaveHeight", "DominantWavePeriod", "AverageWavePeriod", "DirWavePeriod", "SeaLevelPressure", "AirTemp", "SeaSurfaceTemp", "DewpointTemp", "Visibility", "Tide")
+originalBuoy2020 = originalBuoy2020[-c(1),]
+ParkCity2019 = read.csv("./snowfallData/ParkCitySnowfall2019.csv")
+ParkCity2020 = read.csv("./snowfallData/ParkCitySnowfall2020.csv")
+ParkCity2021 = read.csv("./snowfallData/ParkCitySnowfall2021.csv")
+```
+
+```{r warning = FALSE}
+# the measurements we want are measured at minute 40
+originalBuoy2019 = originalBuoy2019 %>%
+  # these aren't measured and remain static
+  select(-c("Tide", "Visibility")) %>%
+  filter(Minute == 40)
+originalBuoy2019 = originalBuoy2019 %>%
+  mutate(WindSpeed = as.numeric(as.character(WindSpeed))) %>%
+  mutate(GustSpeed = as.numeric(as.character(GustSpeed))) %>%
+  mutate(AirTemp = as.numeric(as.character(AirTemp))) %>%
+  mutate(SeaSurfaceTemp = as.numeric(as.character(SeaSurfaceTemp))) %>%
+  mutate(DewpointTemp = as.numeric(as.character(DewpointTemp))) %>%
+  mutate(WaveHeight = as.numeric(as.character(WaveHeight))) %>%
+  mutate(DominantWavePeriod = as.numeric(as.character(DominantWavePeriod))) %>%
+  mutate(AverageWavePeriod = as.numeric(as.character(AverageWavePeriod))) %>%
+  mutate(DirWavePeriod = as.numeric(as.character(DirWavePeriod))) %>%
+  mutate(SeaLevelPressure = as.numeric(as.character(SeaLevelPressure))) %>%
+  mutate(WindDir = as.numeric(as.character(WindDir))) %>%
+  mutate(Day = as.numeric(as.character(Day))) %>%
+  mutate(Month = as.numeric(as.character(Month))) %>%
+  mutate(Year = as.numeric(as.character(Year))) %>%
+  mutate(Hour = as.numeric(as.character(Hour))) %>%
+  filter(WaveHeight != 99.00) %>%
+  select(-c(Minute))
+originalBuoy2020 = originalBuoy2020 %>%
+  # these aren't measured and remain static
+  select(-c("Tide", "Visibility")) %>%
+  filter(Minute == 40)
+originalBuoy2020 = originalBuoy2020 %>%
+  mutate(WindSpeed = as.numeric(as.character(WindSpeed))) %>%
+  mutate(GustSpeed = as.numeric(as.character(GustSpeed))) %>%
+  mutate(AirTemp = as.numeric(as.character(AirTemp))) %>%
+  mutate(SeaSurfaceTemp = as.numeric(as.character(SeaSurfaceTemp))) %>%
+  mutate(DewpointTemp = as.numeric(as.character(DewpointTemp))) %>%
+  mutate(WaveHeight = as.numeric(as.character(WaveHeight))) %>%
+  mutate(DominantWavePeriod = as.numeric(as.character(DominantWavePeriod))) %>%
+  mutate(AverageWavePeriod = as.numeric(as.character(AverageWavePeriod))) %>%
+  mutate(DirWavePeriod = as.numeric(as.character(DirWavePeriod))) %>%
+  mutate(SeaLevelPressure = as.numeric(as.character(SeaLevelPressure))) %>%
+  mutate(WindDir = as.numeric(as.character(WindDir))) %>%
+  mutate(Day = as.numeric(as.character(Day))) %>%
+  mutate(Month = as.numeric(as.character(Month))) %>%
+  mutate(Year = as.numeric(as.character(Year))) %>%
+  mutate(Hour = as.numeric(as.character(Hour))) %>%
+  filter(WaveHeight != 99.00) %>%
+  select(-c(Minute))
+# originalBuoy2019
+# originalBuoy2020
+ParkCity2019 = ParkCity2019 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+ParkCity2019[is.na(ParkCity2019)] <- 0
+ParkCity2020 = ParkCity2020 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+ParkCity2020[is.na(ParkCity2020)] <- 0
+ParkCity2021 = ParkCity2021 %>%
+  mutate_if(is.factor, as.character) %>%
+  mutate_if(is.character, as.numeric)
+ParkCity2021[is.na(ParkCity2021)] <- 0
+```
+
+```{r}
+# the outline of these dataframes is needed for the final results
+# numbers in these are not used
+DailyData2019 = originalBuoy2019 %>%
+  group_by(Year, Month, Day) %>%
+  summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
+DailyData2020 = originalBuoy2020 %>%
+  group_by(Year, Month, Day) %>%
+  summarise(across(c(WindDir:DewpointTemp), ~ mean(.x, na.rm = TRUE)))
+# make snowtotals into one column
+snowTotals2019 = stack(ParkCity2019[2:ncol(ParkCity2019)])
+snowTotals2019 = snowTotals2019[-c(60,61,62,124,168,186,248,341), ]
+# advanced snowfall = park city snow two weeks in advance
+# remove first 14 days of year
+advanceSnowTotals13Days = snowTotals2019[-c(1:13), ]
+advanceSnowTotals14Days = snowTotals2019[-c(1:14), ]
+advanceSnowTotals15Days = snowTotals2019[-c(1:15), ]
+# add first 14 days of next year to end
+SnowTotals13Daysinto2020 = ParkCity2020[1:13, "Jan"]
+SnowTotals14Daysinto2020 = ParkCity2020[1:14, "Jan"]
+SnowTotals15Daysinto2020 = ParkCity2020[1:15, "Jan"]
+SnowTotals13Daysinto2020 = data.frame(values = SnowTotals13Daysinto2020, ind = "Jan")
+SnowTotals14Daysinto2020 = data.frame(values = SnowTotals14Daysinto2020, ind = "Jan")
+SnowTotals15Daysinto2020 = data.frame(values = SnowTotals15Daysinto2020, ind = "Jan")
+advancedSnowfall13 = rbind(advanceSnowTotals13Days, SnowTotals13Daysinto2020)
+advancedSnowfall14 = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2020)
+advancedSnowfall15 = rbind(advanceSnowTotals15Days, SnowTotals15Daysinto2020)
+# create dataframe of snowfalls 
+newParkCity2019 = data.frame(Year = DailyData2019$Year,
+                             Month = DailyData2019$Month,
+                             Day = DailyData2019$Day,
+                             Snowfall = snowTotals2019$values,
+                             Snowfall13DaysLater = advancedSnowfall13$values,
+                             Snowfall14DaysLater = advancedSnowfall14$values,
+                             Snowfall15DaysLater = advancedSnowfall15$values)
+ParkCity2019 = newParkCity2019
+snowTotals2020 = stack(ParkCity2020[2:ncol(ParkCity2020)])
+snowTotals2020 = snowTotals2020[-c(60,61,124,186,194,248,341), ]
+# advanced snowfall = park city snow two weeks in advance
+# remove first 14 days of year
+advanceSnowTotals13Days = snowTotals2020[-c(1:13), ]
+advanceSnowTotals14Days = snowTotals2020[-c(1:14), ]
+advanceSnowTotals15Days = snowTotals2020[-c(1:15), ]
+# add first 14 days of next year to end
+SnowTotals13Daysinto2021 = ParkCity2021[1:13, "Jan"]
+SnowTotals14Daysinto2021 = ParkCity2021[1:14, "Jan"]
+SnowTotals15Daysinto2021 = ParkCity2021[1:15, "Jan"]
+SnowTotals13Daysinto2021 = data.frame(values = SnowTotals13Daysinto2021, ind = "Jan")
+SnowTotals14Daysinto2021 = data.frame(values = SnowTotals14Daysinto2021, ind = "Jan")
+SnowTotals15Daysinto2021 = data.frame(values = SnowTotals15Daysinto2021, ind = "Jan")
+advancedSnowfall13 = rbind(advanceSnowTotals13Days, SnowTotals13Daysinto2021)
+advancedSnowfall14 = rbind(advanceSnowTotals14Days, SnowTotals14Daysinto2021)
+advancedSnowfall15 = rbind(advanceSnowTotals15Days, SnowTotals15Daysinto2021)
+# create dataframe of snowfalls 
+newParkCity2020 = data.frame(Year = DailyData2020$Year,
+                             Month = DailyData2020$Month,
+                             Day = DailyData2020$Day,
+                             Snowfall = snowTotals2020$values,
+                             Snowfall13DaysLater = advancedSnowfall13$values,
+                             Snowfall14DaysLater = advancedSnowfall14$values,
+                             Snowfall15DaysLater = advancedSnowfall15$values)
+ParkCity2020 = newParkCity2020
+totalDaily = rbind(ParkCity2019, ParkCity2020)
+originalBuoys = rbind(originalBuoy2019, originalBuoy2020)
+# originalBuoys["Snowfall"] = totalDaily$Snowfall
+# originalBuoys["Snowfall14DaysLater"] = totalDaily$Snowfall14DaysLater
+originalBuoys = merge(originalBuoys, totalDaily, by = c("Year", "Month", "Day"))
+originalBuoys
+```
+
+How quickly the buoy pops is going to matter
+Check difference from last 12 hours and/or Height > 7?
+  Use biggest difference from day to compare with daily snow totals
+  Does a negative number correlate to storm ending?
+```{r}
+waveHeightDiff12Hours = (originalBuoys$WaveHeight[1:12] -2)
+for (i in 13:nrow(originalBuoys)){
+  waveHeightDiff12Hours[i] = originalBuoys$WaveHeight[i] - originalBuoys$WaveHeight[i - 12]
+}
+originalBuoys["WaveHeightDiff12Hours"] = waveHeightDiff12Hours
+originalBuoys["AvgSnowfall3DayWindow"] = ((originalBuoys$Snowfall13DaysLater + originalBuoys$Snowfall14DaysLater + originalBuoys$Snowfall15DaysLater) /3)
+```
+
+Removes the time element along with Summer months
+```{r}
+timeLessData = originalBuoys %>%
+  filter(Month < 5 | Month > 9) %>%
+  select(-c(Year, Day, Hour, Month, Snowfall13DaysLater, Snowfall14DaysLater, Snowfall15DaysLater, Snowfall))
+timeLessData
+```
+
+Split Data into Testing and Training (70/30)
+```{r}
+trn = sample(seq_len(nrow(timeLessData)), 7000)
+training = timeLessData[trn, ]
+testing = timeLessData[-trn, ]
+```
+
+Linear Regression:
+```{r}
+predictedSnow = lm(AvgSnowfall3DayWindow ~ ., data = training)
+summary(predictedSnow)
+linear_predict = predict(predictedSnow, newdata = testing, type = "response")
+MSE_testing = (testing$AvgSnowfall3DayWindow - linear_predict)^2
+print(paste("MSE of Testing Set: ", round(mean(MSE_testing), 4)))
+```
+
+Trees
+```{r}
+initial_tree = tree(AvgSnowfall3DayWindow ~ ., data = training)
+summary(initial_tree)
+plot(initial_tree)
+text(initial_tree, cex = 0.65, digits = 4, pretty = 0)
+initial_tree
+initial_predict = predict(initial_tree, newdata = testing)
+tree_MSE = round(mean((testing$AvgSnowfall3DayWindow - initial_predict)^2), 4)
+print(paste("Test MSE of Initial Tree: ", tree_MSE))
+# cross validation
+initial_cv = cv.tree(initial_tree)
+ggplot() +
+  geom_point(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  geom_line(aes(x = initial_cv$size, y = initial_cv$dev)) + 
+  ylab("CV Error Rate") + xlab("Size") + ggtitle("CV Classification Error Rate")
+# pruned by CV
+prune_initial <- prune.tree(initial_tree, best = 7)
+plot(prune_initial)
+text(prune_initial, cex = 0.65, digits = 4, pretty = 0)
+```
+
+
+Bagging: 
+```{r}
+bag_fit <- randomForest(AvgSnowfall3DayWindow ~ ., data = training, mtry = ncol(training) - 1, importance = TRUE)
+bag_predict = predict(bag_fit, testing, type = "response")
+bag_MSE = round(mean((testing$AvgSnowfall3DayWindow - bag_predict)^2), 4)
+print(paste("Test MSE of Bagging: ", bag_MSE))
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(X.IncMSE)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("% Decreasing MSE") + 
+  geom_point(aes(X.IncMSE, variable))  
+data.frame(bag_fit$importance) %>%
+  mutate(variable = rownames(bag_fit$importance)) %>%
+  mutate(variable = factor(variable, levels = variable[order(IncNodePurity)])) %>%
+  ggplot() + ggtitle("Predictive Power") + xlab("Node Purity") + 
+  geom_point(aes(IncNodePurity, variable))  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+originalBuoys %>%
+  select(c(Year, Month, Day, Hour, WaveHeight, WaveHeightDiff12Hours)) %>%
+  filter(WaveHeightDiff12Hours <  -2 | WaveHeightDiff12Hours > 2)
+  # ggplot(aes(x = Day, y = WaveHeightDiff12Hours)) +
+  #   geom_point() +
+  #   facet_wrap(~Month + Year)
+ggplot(data = originalBuoys) + 
+  geom_jitter(aes(x = Month, y = AvgSnowfall3DayWindow, alpha = 0.05, fill = NA, colour = "#00abff")) +
+  geom_violin(aes(x = Month, y = WaveHeight, group = Month)) 
+ggplot(data = originalBuoys) +
+  geom_boxplot(aes(x= Month, y = AvgSnowfall3DayWindow, group = Month))
+  
+```
